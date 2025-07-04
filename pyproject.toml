@@ -1,11 +1,41 @@
+[build-system]
+requires = ["setuptools>=65.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "process-template"
+name = "formular_data_sharepoint_automation"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
+authors = [
+  { name = "MBU", email = "rpa@mbu.aarhus.dk" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+]
 dependencies = [
-    "automation-server-client",
+    "OpenOrchestrator == 1.*",
+    "Pillow == 10.*",
+    "openpyxl >= 3.1.2",
+    "pyodbc >= 5.1.0",
+    "requests_ntlm >= 1.2.0",
+    "python-dateutil == 2.9.*",
+    "cryptography >= 43.0.0",
+    "office365-rest-python-client",
+    "uiautomation",
+    "pandas >= 2.2.3",
+    "itk-dev-shared-components == 2.9.0",
+    "mbu-dev-shared-components >= 0.4.2",
+    "automation-server-client @ git+https://github.com/odense-rpa/automation-server-client.git@v0.1.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pylint",
+  "flake8"
 ]
 
 [tool.uv.sources]
