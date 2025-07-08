@@ -1,0 +1,8 @@
+README.md
+main.py
+pyproject.toml
+formular_data_sharepoint_automation.egg-info/PKG-INFO
+formular_data_sharepoint_automation.egg-info/SOURCES.txt
+formular_data_sharepoint_automation.egg-info/dependency_links.txt
+formular_data_sharepoint_automation.egg-info/requires.txt
+formular_data_sharepoint_automation.egg-info/top_level.txt

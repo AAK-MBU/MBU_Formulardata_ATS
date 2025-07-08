@@ -1,0 +1,48 @@
+Metadata-Version: 2.4
+Name: formular_data_sharepoint_automation
+Version: 0.1.0
+Summary: Add your description here
+Author-email: MBU <rpa@mbu.aarhus.dk>
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: Microsoft :: Windows
+Requires-Python: >=3.13
+Description-Content-Type: text/markdown
+Requires-Dist: OpenOrchestrator==1.*
+Requires-Dist: Pillow==10.*
+Requires-Dist: openpyxl>=3.1.2
+Requires-Dist: pyodbc>=5.1.0
+Requires-Dist: requests_ntlm>=1.2.0
+Requires-Dist: python-dateutil==2.9.*
+Requires-Dist: cryptography>=43.0.0
+Requires-Dist: office365-rest-python-client
+Requires-Dist: uiautomation
+Requires-Dist: pandas>=2.2.3
+Requires-Dist: itk-dev-shared-components==2.9.0
+Requires-Dist: mbu-dev-shared-components>=0.4.2
+Requires-Dist: automation-server-client@ git+https://github.com/odense-rpa/automation-server-client.git@v0.1.0
+Provides-Extra: dev
+Requires-Dist: pylint; extra == "dev"
+Requires-Dist: flake8; extra == "dev"
+
+## How to use this template
+
+The repository has been tagged as a template repository. This means you can create a new repository based on this code using the [GitHub instructions](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template)
+
+
+### Alternative method: checkout the repository and remove git bindings
+Replace `<new-folder-name>` with your desired folder name:
+```sh
+git clone https://github.com/odense-rpa/process-template.git <new-folder-name>
+
+cd <new-folder-name>
+
+rm -rf .git
+git init
+git add .
+git commit -m "Initial commit from process-template"
+
+git remote add origin <new-repo-url>
+git push -u origin main
+```
+
