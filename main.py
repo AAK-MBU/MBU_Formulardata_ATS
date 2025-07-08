@@ -2,10 +2,6 @@ import asyncio
 import logging
 import sys
 
-# pylint: disable=W0611
-import requests
-import os
-
 from automation_server_client import AutomationServer, Workqueue, WorkItemError
 
 
