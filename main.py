@@ -10,6 +10,8 @@ async def populate_queue(workqueue: Workqueue):
     Function to populate the workqueue with items.
     """
 
+    print("HELLO WORLD FROM POPULATE QUEUE!")
+
     webforms = [
         "spoergeskema_hypnoterapi_foer_fo",
         "basisteam_spoergeskema_til_fagpe",
@@ -22,8 +24,6 @@ async def populate_queue(workqueue: Workqueue):
             reference=form_id  # can be anything unique
         )
 
-    print("HELLO WORLD")
-
 
 async def process_workqueue(workqueue: Workqueue):
     """
@@ -32,9 +32,11 @@ async def process_workqueue(workqueue: Workqueue):
 
     logger = logging.getLogger(__name__)
 
-    logger.info("Hello from process workqueue!")
+    print("Hello from process workqueue!")
 
     for item in workqueue:
+        print(f"I AM NOW PRINTING AN ITEM: {item}")
+
         with item:
             data = item.get_data_as_dict()
 
@@ -43,6 +45,7 @@ async def process_workqueue(workqueue: Workqueue):
                 pass
 
             except WorkItemError as e:
+                # pylint: disable=C0301
                 # A WorkItemError represents a soft error that indicates the item should be passed to manual processing or a business logic fault
                 # pylint: disable=W1203
                 logger.error(f"Error processing item: {data}. Error: {e}")
