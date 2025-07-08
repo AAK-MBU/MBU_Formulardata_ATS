@@ -34,6 +34,10 @@ async def process_workqueue(workqueue: Workqueue):
 
     print("Hello from process workqueue!")
 
+    print(f"Workqueue has {len(workqueue)} items to process.")
+
+    print(f"Workqueue: {workqueue}")
+
     for item in workqueue:
         print(f"I AM NOW PRINTING AN ITEM: {item}")
 
