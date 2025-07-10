@@ -3,7 +3,7 @@ name = "process-template-dadj"
 version = "0.1.0"
 description = "dadj test project"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
     "automation-server-client",
     "OpenOrchestrator == 1.*",
