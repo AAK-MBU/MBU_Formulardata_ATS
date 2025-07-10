@@ -1,8 +1,26 @@
-import asyncio
-import logging
+"""
+main.py
+"""
+
 import sys
+import os
+
+import asyncio
+
+from dotenv import load_dotenv
 
 from automation_server_client import AutomationServer, Workqueue, WorkItemError
+
+from helper_functions import helper_functions
+
+LINE_BREAK = "\n\n\n" + "-" * 125 + "\n\n\n"
+
+load_dotenv()  # Loads variables from .env
+
+DB_CONN_STRING = os.getenv("DbConnectionString")
+
+ATS_URL = os.getenv("ATS_URL")
+ATS_TOKEN = os.getenv("ATS_TOKEN")
 
 
 async def populate_queue(workqueue: Workqueue):
@@ -10,19 +28,52 @@ async def populate_queue(workqueue: Workqueue):
     Function to populate the workqueue with items.
     """
 
-    print("HELLO WORLD FROM POPULATE QUEUE!")
+    print("Hello from populate workqueue!\n")
 
     webforms = [
-        "spoergeskema_hypnoterapi_foer_fo",
         "basisteam_spoergeskema_til_fagpe",
-        # ...add all 6
+        "basisteam_spoergeskema_til_forae",
+        "henvisningsskema_til_klinisk_hyp",
+        "spoergeskema_hypnoterapi_foer_fo",
+        "opfoelgende_spoergeskema_hypnote",
+        "foraelder_en_god_overgang_fra_hj",
+        "fagperson_en_god_overgang_fra_hj",
+        "sundung_aarhus",
+        "tilmelding_til_modersmaalsunderv",
     ]
 
-    for form_id in webforms:
-        workqueue.add_item(
-            data={"os2_webform_id": form_id},
-            reference=form_id  # can be anything unique
+    for webform_id in webforms:
+        if webform_id not in (
+            "basisteam_spoergeskema_til_fagpe",
+            # "henvisningsskema_til_klinisk_hyp",
+            # "spoergeskema_hypnoterapi_foer_fo"
+        ):
+            continue
+
+        print(f"Looping through submissions for webform_id: {webform_id}")
+
+        all_forms = helper_functions.get_forms_data(
+            conn_string=DB_CONN_STRING,
+            form_type=webform_id,
         )
+
+        for i, form in enumerate(all_forms):
+            form_uuid = form["entity"]["uuid"][0]["value"]
+
+            if form_uuid != "2a8cbe7b-64e8-4d3c-a3ff-fd0342b4fead":
+                continue
+
+            workqueue.add_item(
+                data={
+                    "webform_id": webform_id,
+                    "data": form,
+                },
+                reference=form_uuid
+            )
+
+            print(f"Added form with reference: {form_uuid} to workqueue.\n")
+
+        print(LINE_BREAK)
 
 
 async def process_workqueue(workqueue: Workqueue):
@@ -30,50 +81,47 @@ async def process_workqueue(workqueue: Workqueue):
     Function to process the workqueue items.
     """
 
-    logger = logging.getLogger(__name__)
-
     print("Hello from process workqueue!")
 
-    print(f"Workqueue has {len(workqueue)} items to process.")
-
-    print(f"Workqueue: {workqueue}")
-
     for item in workqueue:
-        print(f"I AM NOW PRINTING AN ITEM: {item}")
+        reference = item.reference
+
+        data = item.get_data_as_dict()
+
+        webform_id = data.get("webform_id")
+
+        form_data = data.get("data")
 
         with item:
-            data = item.get_data_as_dict()
-
             try:
                 # Process the item here
-                pass
+                print(f"Processing item with data: {data}")
 
             except WorkItemError as e:
-                # pylint: disable=C0301
                 # A WorkItemError represents a soft error that indicates the item should be passed to manual processing or a business logic fault
-                # pylint: disable=W1203
-                logger.error(f"Error processing item: {data}. Error: {e}")
+                print(f"Error processing item: {data}. Error: {e}")
 
                 item.fail(str(e))
 
-
-print("TEST PRINT")
-
+        print()
 
 if __name__ == "__main__":
     ats = AutomationServer.from_environment()
 
     test_workqueue = ats.workqueue()
 
-    # Initialize external systems for automation here..
+    print("TEST PRINT")
 
-    # Queue management
+    print(sys.argv)
+
     if "--queue" in sys.argv:
+        print("Queue argument detected, clearing workqueue...")
+
         test_workqueue.clear_workqueue("new")
 
         asyncio.run(populate_queue(test_workqueue))
 
-        exit(0)
+        sys.exit(0)
 
-    # Process workqueue
     asyncio.run(process_workqueue(test_workqueue))
+    print("Workqueue processing completed.")

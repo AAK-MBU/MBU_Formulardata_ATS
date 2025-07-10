@@ -1,8 +1,0 @@
-README.md
-main.py
-pyproject.toml
-process_template_dadj.egg-info/PKG-INFO
-process_template_dadj.egg-info/SOURCES.txt
-process_template_dadj.egg-info/dependency_links.txt
-process_template_dadj.egg-info/requires.txt
-process_template_dadj.egg-info/top_level.txt
