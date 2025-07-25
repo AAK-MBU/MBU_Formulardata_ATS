@@ -4,11 +4,11 @@ from urllib.parse import unquote, urlparse
 import json
 import urllib.parse
 
-from typing import Dict, Any
-
 from io import BytesIO
 
 import math
+
+from typing import Dict, Any
 
 import requests
 
@@ -24,6 +24,8 @@ from OpenOrchestrator.orchestrator_connection.connection import OrchestratorConn
 
 from mbu_dev_shared_components.msoffice365.sharepoint_api.files import Sharepoint
 
+
+# Clean up and move this function to the sharepoint_api class
 
 def load_credential(url, token, credential_name: str) -> dict:
     """
@@ -71,6 +73,35 @@ def get_credentials_and_constants(orchestrator_connection: OrchestratorConnectio
         return credentials
     except AttributeError as e:
         raise SystemExit(e) from e
+
+
+def get_workqueue_items(url, token, workqueue_id):
+    """
+    Retrieve items from the specified workqueue.
+    If the queue is empty, return an empty list.
+    """
+
+    workqueue_items = set()
+
+    if not url or not token:
+        raise EnvironmentError("ATS_URL or ATS_TOKEN is not set in the environment")
+
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    full_url = f"{url}/workqueues/{workqueue_id}/items"
+
+    response = requests.get(full_url, headers=headers, timeout=60)
+
+    res_json = response.json().get("items", [])
+
+    for row in res_json:
+        ref = row.get("reference")
+
+        workqueue_items.add(ref)
+
+    return workqueue_items
 
 
 def get_forms_data(conn_string: str, form_type: str) -> list[dict]:
@@ -209,15 +240,13 @@ def format_excel_file(excel_stream: BytesIO) -> BytesIO:
 
 
 def upload_pdf_to_sharepoint(
-    orchestrator_connection: OrchestratorConnection,
     sharepoint_api: Sharepoint,
     folder_name: str,
     os2_api_key: str,
-    active_forms: list,
+    file_url: str,
 ) -> None:
     """Main function to upload a PDF to Sharepoint."""
 
-    orchestrator_connection.log_trace("Upload PDF to Sharepoint started.")
     print("Upload PDF to Sharepoint started.")
 
     existing_pdfs_sum = 0
@@ -230,42 +259,31 @@ def upload_pdf_to_sharepoint(
     else:
         existing_pdf_names = set()
 
-    for form in active_forms:
-        file_url = form["data"]["attachments"]["besvarelse_i_pdf_format"]["url"]
+    path = urlparse(file_url).path
+    filename = path.split('/')[-1]
+    final_filename = f"{unquote(filename)}"
 
-        path = urlparse(file_url).path
-        filename = path.split('/')[-1]
-        final_filename = f"{unquote(filename)}"
+    print(file_url)
+    print(final_filename)
 
-        print(file_url)
-        print(final_filename)
+    if final_filename in existing_pdf_names:
+        print(f"File {final_filename} already exists in Sharepoint. Skipping download.")
 
-        if final_filename in existing_pdf_names:
-            print(f"File {final_filename} already exists in Sharepoint. Skipping download.")
+        return
 
-            existing_pdfs_sum += 1
+    print("Downloading PDF from OS2Forms API.")
+    try:
+        downloaded_file = download_file_bytes(file_url, os2_api_key)
 
-            continue
+    except requests.RequestException as error:
+        print(f"Failed to download file: {error}")
 
-        orchestrator_connection.log_trace("Downloading PDF from OS2Forms API.")
-        print("Downloading PDF from OS2Forms API.")
-        try:
-            downloaded_file = download_file_bytes(file_url, os2_api_key)
-
-        except requests.RequestException as error:
-            orchestrator_connection.log_trace(f"Failed to download file: {error}")
-            print(f"Failed to download file: {error}")
-
-        # Upload the file to Sharepoint
-        sharepoint_api.upload_file_from_bytes(
-            binary_content=downloaded_file,
-            file_name=final_filename,
-            folder_name=folder_name
-        )
-
-    if existing_pdfs_sum == len(active_forms):
-        orchestrator_connection.log_trace("All files already exist in Sharepoint. No new files uploaded.")
-        print("All files already exist in Sharepoint. No new files uploaded.")
+    # Upload the file to Sharepoint
+    sharepoint_api.upload_file_from_bytes(
+        binary_content=downloaded_file,
+        file_name=final_filename,
+        folder_name=folder_name
+    )
 
 
 def download_file_bytes(url: str, os2_api_key: str) -> bytes:
