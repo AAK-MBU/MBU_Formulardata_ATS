@@ -4,7 +4,6 @@ main.py
 
 import sys
 import os
-import json
 
 import asyncio
 
@@ -56,8 +55,6 @@ async def populate_queue(workqueue: Workqueue):
     formular_mapping = None
 
     upload_pdfs_to_sharepoint_folder_name = ""
-
-    pdf_url = ""
 
     current_day_of_month = str(pd.Timestamp.now().day)
 
@@ -254,9 +251,9 @@ async def process_workqueue(workqueue: Workqueue):
         excel_file_name = data.get("excel_file_name")
         form_data = data.get("data")
 
-        upload_pdfs_to_sharepoint_folder_name = ""
+        upload_pdfs_to_sharepoint_folder_name = data.get("upload_pdfs_to_sharepoint_folder_name", "")
 
-        file_url = ""
+        file_url = data.get("pdf_url", "")
 
         testing = True
         # testing = False
@@ -264,11 +261,6 @@ async def process_workqueue(workqueue: Workqueue):
             site_name = "MBURPA"
             folder_name = "Automation_Server"
             upload_pdfs_to_sharepoint_folder_name = "Automation_Server/pdf"
-
-        if webform_id in ("basisteam_spoergeskema_til_fagpe", "basisteam_spoergeskema_til_forae"):
-            upload_pdfs_to_sharepoint_folder_name = data.get("upload_pdfs_to_sharepoint_folder_name", "")
-
-            file_url = data.get("pdf_url", "")
 
         sharepoint_api = Sharepoint(username=USERNAME, password=PASSWORD, site_url=SHAREPOINT_FOLDER_URL, site_name=site_name, document_library=SHAREPOINT_DOCUMENT_LIBRARY)
 
