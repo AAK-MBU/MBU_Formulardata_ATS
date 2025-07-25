@@ -285,28 +285,6 @@ async def process_workqueue(workqueue: Workqueue):
                     new_row=form_data
                 )
 
-                # sharepoint_api.format_and_sort_excel_file(
-                #     folder_name=folder_name,
-                #     excel_file_name=excel_file_name,
-                #     sheet_name=SHEET_NAME,
-                #     sorting_keys=[{"key": "A", "ascending": True, "type": "str"}],
-                #     bold_rows=[1],
-                #     align_horizontal="left",
-                #     align_vertical="up",
-                #     freeze_panes="1"
-                # )
-                helper_functions.format_and_sort_excel_file(
-                    sharepoint=sharepoint_api,
-                    folder_name=folder_name,
-                    excel_file_name=excel_file_name,
-                    sheet_name=SHEET_NAME,
-                    sorting_keys=[{"key": "A", "ascending": True, "type": "str"}],
-                    bold_rows=[1],
-                    align_horizontal="left",
-                    align_vertical="up",
-                    freeze_panes="1"
-                )
-
                 if upload_pdfs_to_sharepoint_folder_name != "":
                     print("Uploading PDFs to SharePoint.")
 
@@ -322,6 +300,28 @@ async def process_workqueue(workqueue: Workqueue):
                 print(f"Error processing item: {data}. Error: {e}")
 
                 item.fail(str(e))
+
+        # sharepoint_api.format_and_sort_excel_file(
+        #     folder_name=folder_name,
+        #     excel_file_name=excel_file_name,
+        #     sheet_name=SHEET_NAME,
+        #     sorting_keys=[{"key": "A", "ascending": False, "type": "str"}],
+        #     bold_rows=[1],
+        #     align_horizontal="left",
+        #     align_vertical="top",
+        #     freeze_panes="A2"
+        # )
+        helper_functions.format_and_sort_excel_file(
+            sharepoint=sharepoint_api,
+            folder_name=folder_name,
+            excel_file_name=excel_file_name,
+            sheet_name=SHEET_NAME,
+            sorting_keys=[{"key": "A", "ascending": False, "type": "str"}],
+            bold_rows=[1],
+            align_horizontal="left",
+            align_vertical="top",
+            freeze_panes="A2"
+        )
 
         print()
 
