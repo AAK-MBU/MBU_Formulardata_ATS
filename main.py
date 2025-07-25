@@ -278,7 +278,7 @@ async def process_workqueue(workqueue: Workqueue):
                 # )
                 helper_functions.append_row_to_sharepoint_excel(
                     sharepoint=sharepoint_api,
-                    required_headers=["Serial number"],
+                    required_headers=None,
                     folder_name=folder_name,
                     excel_file_name=excel_file_name,
                     sheet_name=SHEET_NAME,
