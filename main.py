@@ -277,7 +277,15 @@ async def process_workqueue(workqueue: Workqueue):
                 # Process the item here
                 print(f"Processing item with reference: {reference}")
 
-                sharepoint_api.append_row_to_sharepoint_excel(
+                # sharepoint_api.append_row_to_sharepoint_excel(
+                #     required_headers=["Serial number"],
+                #     folder_name=folder_name,
+                #     excel_file_name=excel_file_name,
+                #     sheet_name=SHEET_NAME,
+                #     new_row=form_data
+                # )
+                helper_functions.append_row_to_sharepoint_excel(
+                    sharepoint=sharepoint_api,
                     required_headers=["Serial number"],
                     folder_name=folder_name,
                     excel_file_name=excel_file_name,
@@ -285,7 +293,18 @@ async def process_workqueue(workqueue: Workqueue):
                     new_row=form_data
                 )
 
-                sharepoint_api.format_and_sort_excel_file(
+                # sharepoint_api.format_and_sort_excel_file(
+                #     folder_name=folder_name,
+                #     excel_file_name=excel_file_name,
+                #     sheet_name=SHEET_NAME,
+                #     sorting_keys=[{"key": "A", "ascending": True, "type": "str"}],
+                #     bold_rows=[1],
+                #     align_horizontal="left",
+                #     align_vertical="up",
+                #     freeze_panes="1"
+                # )
+                helper_functions.format_and_sort_excel_file(
+                    sharepoint=sharepoint_api,
                     folder_name=folder_name,
                     excel_file_name=excel_file_name,
                     sheet_name=SHEET_NAME,
@@ -336,5 +355,6 @@ if __name__ == "__main__":
 
         sys.exit()
 
-    asyncio.run(process_workqueue(test_workqueue))
-    print("Workqueue processing completed.")
+    else:
+        asyncio.run(process_workqueue(test_workqueue))
+        print("Workqueue processing completed.")

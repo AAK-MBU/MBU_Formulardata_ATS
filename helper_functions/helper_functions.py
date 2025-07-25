@@ -25,7 +25,227 @@ from OpenOrchestrator.orchestrator_connection.connection import OrchestratorConn
 from mbu_dev_shared_components.msoffice365.sharepoint_api.files import Sharepoint
 
 
-# Clean up and move this function to the sharepoint_api class
+### REMOVE THESE IMPORTS
+from io import BytesIO
+
+from typing import Optional, List, Dict, Any
+
+from openpyxl.styles import Font, Alignment
+from openpyxl import load_workbook
+### REMOVE THESE IMPORTS
+
+
+### REMOVE THESE 2 FUNCTIONS AFTER UPDATING mbu-dev-shared-components
+def append_row_to_sharepoint_excel(
+    sharepoint: Sharepoint,
+    required_headers: Optional[List[str]] = None,
+    folder_name: str = "",
+    excel_file_name: str = "",
+    sheet_name: str = "",
+    new_row: Dict = None,
+) -> None:
+    """
+    • Appends a row to an existing Excel file.
+    • Sorts and formats based on provided parameters.
+    """
+
+    # 1. Pull file
+    binary_file = sharepoint.fetch_file_using_open_binary(excel_file_name, folder_name)
+
+    if binary_file is None:
+        raise FileNotFoundError(f"File '{excel_file_name}' not found in folder '{folder_name}'.")
+
+    wb = load_workbook(BytesIO(binary_file))
+
+    if sheet_name not in wb.sheetnames:
+        raise ValueError(f"Sheet '{sheet_name}' not found in '{excel_file_name}'")
+
+    ws = wb[sheet_name]
+
+    # 2. Validate headers
+    if required_headers:
+        current_headers = [cell.value for cell in ws[1]]
+
+        if current_headers != required_headers:
+            raise ValueError(
+                f"Header mismatch in sheet '{sheet_name}'!\n"
+                f"Expected: {required_headers}\n"
+                f"Found:    {current_headers}"
+            )
+
+    # 2.5 Clean up empty rows before appending
+    for row_idx in range(ws.max_row, 1, -1):  # Start from bottom, skip header
+        row_values = [cell.value for cell in ws[row_idx]]
+
+        if all(cell is None for cell in row_values):
+            ws.delete_rows(row_idx)
+
+    # 3. Append new row to sheet
+    ws.append([new_row.get(header.value, "") for header in ws[1]])
+
+    # 4. Save and upload
+    temp_stream = BytesIO()
+
+    wb.save(temp_stream)
+
+    temp_stream.seek(0)
+
+    sharepoint.upload_file_from_bytes(temp_stream.getvalue(), excel_file_name, folder_name)
+
+    print(f"✔ Added row + sorted '{sheet_name}' in '{excel_file_name}'.")
+
+
+# pylint: disable=W0102, R0912
+def format_and_sort_excel_file(
+    sharepoint: Sharepoint,
+    folder_name: str = "",
+    excel_file_name: str = "",
+    sheet_name: str = "",
+    sorting_keys: List[Dict[str, Any]] = [{"key": "A", "ascending": True, "type": "str"}],
+    bold_rows: Optional[List[int]] = None,
+    italic_rows: Optional[List[int]] = None,
+    font_config: Optional[Dict[int, Dict[str, Any]]] = None,
+    align_horizontal: str = "center",
+    align_vertical: str = "center",
+    column_widths: Any = "auto",
+    freeze_panes: Optional[str] = None,
+):
+    """
+    Sorts and formats an Excel worksheet based on provided styling and sorting rules.
+
+    Params:
+        ws: Target worksheet
+        sorting_keys: List of dicts like [{"key": "A", "ascending": True, "type": "datetime"}]
+        bold_rows: List of row numbers to bold (defaults to [1])
+        italic_rows: List of row numbers to italicize
+        font_config: Dict of row -> font config (overrides bold/italic)
+        column_widths: "auto" or dict like {"A": 20}
+        align_horizontal: Horizontal text alignment
+        align_vertical: Vertical text alignment
+        freeze_panes: E.g., "A2" to freeze header row
+
+    Returns:
+        Modified worksheet
+    """
+
+    if bold_rows is None:
+        bold_rows = [1]
+
+    binary_file = sharepoint.fetch_file_using_open_binary(excel_file_name, folder_name)
+    if binary_file is None:
+        raise FileNotFoundError(f"File '{excel_file_name}' not found in folder '{folder_name}'.")
+
+    wb = load_workbook(BytesIO(binary_file))
+
+    if sheet_name not in wb.sheetnames:
+        raise ValueError(f"Sheet '{sheet_name}' not found in '{excel_file_name}'")
+
+    ws = wb[sheet_name]
+
+    # 1. Read data into DataFrame
+    rows = list(ws.iter_rows(values_only=True))
+
+    header, *data_rows = rows
+
+    df = pd.DataFrame(data_rows, columns=header)
+
+    # 2. Determine sorting columns and convert types if needed
+    sort_columns = []
+    ascending_flags = []
+
+    for item in sorting_keys:
+        key = item.get("key")
+        ascending = item.get("ascending", True)
+        dtype = item.get("type")
+
+        # Get column name from key (can be letter, index, or name)
+        if isinstance(key, int):
+            col_name = header[key]
+
+        elif isinstance(key, str) and key.isalpha():
+            col_name = header[ord(key.upper()) - ord("A")]
+
+        else:
+            col_name = key
+
+        # Add to sorting list
+        sort_columns.append(col_name)
+
+        ascending_flags.append(ascending)
+
+        # Optional: convert to desired dtype
+        if dtype == "datetime":
+            df[col_name] = pd.to_datetime(df[col_name], dayfirst=True, errors="coerce")
+
+        elif dtype == "int":
+            df[col_name] = pd.to_numeric(df[col_name], errors="coerce", downcast="integer")
+
+        elif dtype == "float":
+            df[col_name] = pd.to_numeric(df[col_name], errors="coerce", downcast="float")
+
+        elif dtype == "str":
+            df[col_name] = df[col_name].astype(str)
+
+    # 3. Sort
+    df.sort_values(by=sort_columns, ascending=ascending_flags, inplace=True)
+
+    # 4. Overwrite sheet with sorted data
+    ws.delete_rows(1, ws.max_row)
+
+    ws.append(header)
+
+    for _, row in df.iterrows():
+        ws.append(list(row))
+
+    # 5. Apply formatting
+    for row_idx, row in enumerate(ws.iter_rows(), start=1):
+        for cell in row:
+            if font_config and row_idx in font_config:
+                config = font_config[row_idx]
+
+                cell.font = Font(
+                    name=config.get("name", "Calibri"),
+                    size=config.get("size", 11),
+                    bold=config.get("bold", False),
+                    italic=config.get("italic", False),
+                )
+
+            else:
+                cell.font = Font(
+                    bold=row_idx in bold_rows,
+                    italic=row_idx in italic_rows if italic_rows else False,
+                )
+
+            cell.alignment = Alignment(
+                horizontal=align_horizontal,
+                vertical=align_vertical,
+            )
+
+    # 6. Adjust column widths
+    if column_widths == "auto":
+        for col in ws.columns:
+            max_len = max(len(str(cell.value or "")) for cell in col)
+
+            ws.column_dimensions[col[0].column_letter].width = max_len + 2
+
+    elif isinstance(column_widths, dict):
+        for col_letter, width in column_widths.items():
+            ws.column_dimensions[col_letter].width = width
+
+    # 7. Freeze panes
+    if freeze_panes:
+        ws.freeze_panes = freeze_panes
+
+    # 4. Save and upload
+    temp_stream = BytesIO()
+
+    wb.save(temp_stream)
+
+    temp_stream.seek(0)
+
+    sharepoint.upload_file_from_bytes(temp_stream.getvalue(), excel_file_name, folder_name)
+### REMOVE THESE 2 FUNCTIONS AFTER UPDATING mbu-dev-shared-components
+
 
 def load_credential(url, token, credential_name: str) -> dict:
     """
