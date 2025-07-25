@@ -15,7 +15,7 @@ from io import BytesIO
 
 from dotenv import load_dotenv
 
-from automation_server_client import AutomationServer, Workqueue, WorkItemError
+from automation_server_client import AutomationServer, Workqueue, WorkItemError, Credential
 
 from mbu_dev_shared_components.msoffice365.sharepoint_api.files import Sharepoint
 
@@ -238,6 +238,11 @@ async def process_workqueue(workqueue: Workqueue):
 
     print("Hello from process workqueue!")
 
+    rpa_login_cred = Credential.get_credential("SvcRpaMBU002 RPA Login")
+
+    username = rpa_login_cred.username
+    password = rpa_login_cred.password
+
     os2_api_key = os.getenv("OS2_API_KEY")  # Change to fetch from automation server credential
 
     for item in workqueue:
@@ -262,7 +267,7 @@ async def process_workqueue(workqueue: Workqueue):
             folder_name = "Automation_Server"
             upload_pdfs_to_sharepoint_folder_name = "Automation_Server/pdf"
 
-        sharepoint_api = Sharepoint(username=USERNAME, password=PASSWORD, site_url=SHAREPOINT_FOLDER_URL, site_name=site_name, document_library=SHAREPOINT_DOCUMENT_LIBRARY)
+        sharepoint_api = Sharepoint(username=username, password=password, site_url=SHAREPOINT_FOLDER_URL, site_name=site_name, document_library=SHAREPOINT_DOCUMENT_LIBRARY)
 
         with item:
             try:
