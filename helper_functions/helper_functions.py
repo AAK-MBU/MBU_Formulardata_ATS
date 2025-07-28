@@ -34,7 +34,6 @@ from openpyxl import load_workbook
 ### REMOVE THESE 2 FUNCTIONS AFTER UPDATING mbu-dev-shared-components
 def append_row_to_sharepoint_excel(
     sharepoint: Sharepoint,
-    required_headers: Optional[List[str]] = None,
     folder_name: str = "",
     excel_file_name: str = "",
     sheet_name: str = "",
@@ -58,18 +57,7 @@ def append_row_to_sharepoint_excel(
 
     ws = wb[sheet_name]
 
-    # 2. Validate headers
-    if required_headers:
-        current_headers = [cell.value for cell in ws[1]]
-
-        if current_headers != required_headers:
-            raise ValueError(
-                f"Header mismatch in sheet '{sheet_name}'!\n"
-                f"Expected: {required_headers}\n"
-                f"Found:    {current_headers}"
-            )
-
-    # 2.5 Clean up empty rows before appending
+    # 2 Clean up empty rows before appending
     for row_idx in range(ws.max_row, 1, -1):  # Start from bottom, skip header
         row_values = [cell.value for cell in ws[row_idx]]
 
@@ -113,9 +101,9 @@ def format_and_sort_excel_file(
         excel_file_name: Name of the excel file
         sheet_name: Name of the sheet that will be sorted
         sorting_keys: List of dicts like [{"key": "A", "ascending": True, "type": "datetime"}]
-        bold_rows: List of row numbers to bold (defaults to [1])
-        italic_rows: List of row numbers to italicize
         font_config: Dict of row -> font config (overrides bold/italic)
+        bold_rows: List of row numbers to bold like [1, 2, ...]
+        italic_rows: List of row numbers to italicize like [1, 2, ...]
         align_horizontal: Horizontal text alignment
         align_vertical: Vertical text alignment
         column_widths: "auto" or an int to represent a pixel value
