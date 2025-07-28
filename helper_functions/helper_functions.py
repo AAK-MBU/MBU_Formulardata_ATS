@@ -26,11 +26,9 @@ from mbu_dev_shared_components.msoffice365.sharepoint_api.files import Sharepoin
 
 
 ### REMOVE THESE IMPORTS
-from io import BytesIO
+from typing import Optional, List
 
-from typing import Optional, List, Dict, Any
-
-from openpyxl.styles import Font, Alignment
+from openpyxl.styles import Font
 from openpyxl import load_workbook
 ### REMOVE THESE IMPORTS
 
@@ -103,10 +101,10 @@ def format_and_sort_excel_file(
     sheet_name: str = "",
     sorting_keys: List[Dict[str, Any]] = [{"key": "A", "ascending": True, "type": "str"}],
     bold_rows: Optional[List[int]] = None,
-    italic_rows: Optional[List[int]] = None,
-    font_config: Optional[Dict[int, Dict[str, Any]]] = None,
     align_horizontal: str = "center",
     align_vertical: str = "center",
+    italic_rows: Optional[List[int]] = None,
+    font_config: Optional[Dict[int, Dict[str, Any]]] = None,
     column_widths: Any = "auto",
     freeze_panes: Optional[str] = None,
 ):
@@ -136,7 +134,6 @@ def format_and_sort_excel_file(
         raise FileNotFoundError(f"File '{excel_file_name}' not found in folder '{folder_name}'.")
 
     wb = load_workbook(BytesIO(binary_file))
-
     if sheet_name not in wb.sheetnames:
         raise ValueError(f"Sheet '{sheet_name}' not found in '{excel_file_name}'")
 
@@ -144,12 +141,10 @@ def format_and_sort_excel_file(
 
     # 1. Read data into DataFrame
     rows = list(ws.iter_rows(values_only=True))
-
     header, *data_rows = rows
-
     df = pd.DataFrame(data_rows, columns=header)
 
-    # 2. Determine sorting columns and convert types if needed
+    # 2. Prepare sorting
     sort_columns = []
     ascending_flags = []
 
@@ -158,58 +153,45 @@ def format_and_sort_excel_file(
         ascending = item.get("ascending", True)
         dtype = item.get("type")
 
-        # Get column name from key (can be letter, index, or name)
         if isinstance(key, int):
             col_name = header[key]
-
         elif isinstance(key, str) and key.isalpha():
             col_name = header[ord(key.upper()) - ord("A")]
-
         else:
             col_name = key
 
-        # Add to sorting list
         sort_columns.append(col_name)
-
         ascending_flags.append(ascending)
 
-        # Optional: convert to desired dtype
         if dtype == "datetime":
             df[col_name] = pd.to_datetime(df[col_name], dayfirst=True, errors="coerce")
-
         elif dtype == "int":
             df[col_name] = pd.to_numeric(df[col_name], errors="coerce", downcast="integer")
-
         elif dtype == "float":
             df[col_name] = pd.to_numeric(df[col_name], errors="coerce", downcast="float")
-
         elif dtype == "str":
             df[col_name] = df[col_name].astype(str)
 
     # 3. Sort
     df.sort_values(by=sort_columns, ascending=ascending_flags, inplace=True)
 
-    # 4. Overwrite sheet with sorted data
+    # 4. Overwrite worksheet
     ws.delete_rows(1, ws.max_row)
-
     ws.append(header)
-
     for _, row in df.iterrows():
         ws.append(list(row))
 
-    # 5. Apply formatting
+    # 5. Apply base formatting
     for row_idx, row in enumerate(ws.iter_rows(), start=1):
         for cell in row:
             if font_config and row_idx in font_config:
                 config = font_config[row_idx]
-
                 cell.font = Font(
                     name=config.get("name", "Calibri"),
                     size=config.get("size", 11),
                     bold=config.get("bold", False),
                     italic=config.get("italic", False),
                 )
-
             else:
                 cell.font = Font(
                     bold=row_idx in bold_rows,
@@ -219,30 +201,56 @@ def format_and_sort_excel_file(
             cell.alignment = Alignment(
                 horizontal=align_horizontal,
                 vertical=align_vertical,
+                wrap_text=False
             )
 
-    # 6. Adjust column widths
     if column_widths == "auto":
         for col in ws.columns:
             max_len = max(len(str(cell.value or "")) for cell in col)
-
             ws.column_dimensions[col[0].column_letter].width = max_len + 2
 
-    elif isinstance(column_widths, dict):
-        for col_letter, width in column_widths.items():
-            ws.column_dimensions[col_letter].width = width
+    elif isinstance(column_widths, int):
+        for col in ws.columns:
+            col_letter = col[0].column_letter
+            max_len = max(len(str(cell.value or "")) for cell in col)
 
-    # 7. Freeze panes
+            if isinstance(column_widths, dict):
+                max_configured_width = column_widths.get(col_letter, 10)
+            else:
+                max_configured_width = column_widths  # single int value
+
+            # If content fits, auto-size
+            if max_len + 2 <= max_configured_width:
+                ws.column_dimensions[col_letter].width = max_len + 2
+            else:
+                # Cap width and enable wrap
+                ws.column_dimensions[col_letter].width = max_configured_width
+                for cell in col:
+                    cell.alignment = cell.alignment.copy(wrap_text=True)
+
+        # 6b. Auto-adjust row height for wrapped cells
+        for row in ws.iter_rows():
+            max_line_count = 1
+
+            for cell in row:
+                if cell.value and cell.alignment and cell.alignment.wrap_text:
+                    col_letter = cell.column_letter
+                    col_width = ws.column_dimensions[col_letter].width or 10
+                    chars_per_line = col_width * 1.2
+                    lines = str(cell.value).split("\n")
+                    line_count = sum(math.ceil(len(line) / chars_per_line) for line in lines)
+                    max_line_count = max(max_line_count, line_count)
+
+            ws.row_dimensions[row[0].row].height = max_line_count * 20
+
+    # 7. Freeze panes if needed
     if freeze_panes:
         ws.freeze_panes = freeze_panes
 
-    # 4. Save and upload
+    # 8. Save and re-upload
     temp_stream = BytesIO()
-
     wb.save(temp_stream)
-
     temp_stream.seek(0)
-
     sharepoint.upload_file_from_bytes(temp_stream.getvalue(), excel_file_name, folder_name)
 ### REMOVE THESE 2 FUNCTIONS AFTER UPDATING mbu-dev-shared-components
 

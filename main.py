@@ -325,6 +325,9 @@ async def process_workqueue(workqueue: Workqueue):
             bold_rows=[1],
             align_horizontal="left",
             align_vertical="top",
+            italic_rows=None,
+            font_config=None,
+            column_widths=100,
             freeze_panes="A2"
         )
 
