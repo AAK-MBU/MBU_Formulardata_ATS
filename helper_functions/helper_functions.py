@@ -14,8 +14,6 @@ import requests
 
 import pandas as pd
 
-import openpyxl
-
 from sqlalchemy import create_engine
 
 from openpyxl.styles import Alignment
@@ -419,91 +417,6 @@ def get_forms_data(conn_string: str, form_type: str) -> list[dict]:
             print("Invalid JSON in form_data, skipping row.")
 
     return extracted_data
-
-
-def format_excel_file(excel_stream: BytesIO) -> BytesIO:
-    """
-    Applies formatting to an Excel file contained in a BytesIO stream.
-    This includes:
-      - Freezing the first row.
-      - Applying left and top alignment to all cells.
-      - Auto-adjusting column widths up to a maximum width and enabling wrap_text if needed.
-      - Auto-adjusting row heights based on the wrapped text.
-
-    Returns:
-        A new BytesIO stream containing the formatted workbook.
-    """
-
-    # Load the workbook from the input stream
-    wb = openpyxl.load_workbook(excel_stream)
-    ws = wb.active
-
-    # Freeze the first row
-    ws.freeze_panes = "A2"
-
-    # Apply left alignment and top vertical alignment to all cells
-    for row in ws.iter_rows():
-        for cell in row:
-            cell.alignment = Alignment(horizontal="left", vertical="top")
-
-    # Define a maximum column width (in characters)
-    max_allowed_width = 100  # adjust as needed
-
-    # Auto-adjust column widths based on content length, enabling wrap_text if necessary
-    for col in ws.columns:
-        max_length = 0
-
-        column_letter = col[0].column_letter  # Get column letter
-
-        for cell in col:
-            if cell.value:
-                max_length = max(max_length, len(str(cell.value)))
-
-        computed_width = max_length + 2
-
-        if computed_width > max_allowed_width:
-            ws.column_dimensions[column_letter].width = max_allowed_width
-
-            # Enable wrap_text for cells in this column
-            for cell in col:
-                cell.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
-
-        else:
-            ws.column_dimensions[column_letter].width = computed_width
-
-    # Auto-adjust row heights based on wrapped text (simulate double-click auto-fit)
-    for row in ws.iter_rows():
-        max_line_count = 1  # Start with at least one line
-
-        for cell in row:
-            if cell.value and cell.alignment.wrap_text:
-                col_letter = cell.column_letter
-
-                # Use the set column width or a default value if not set
-                col_width = ws.column_dimensions[col_letter].width or 10
-
-                # Estimate how many characters fit in one line (factor may need tweaking)
-                chars_per_line = col_width * 1.2
-
-                # Split the cell text by newlines
-                lines = str(cell.value).split("\n")
-
-                # Estimate total line count for the cell
-                line_count = sum(math.ceil(len(line) / chars_per_line) for line in lines)
-
-                max_line_count = max(max_line_count, line_count)
-
-        # Set the row height (multiplier of 20 is a rough estimate; adjust as needed)
-        ws.row_dimensions[row[0].row].height = max_line_count * 20
-
-    # Save the formatted workbook to a new BytesIO stream and return it
-    formatted_stream = BytesIO()
-
-    wb.save(formatted_stream)
-
-    formatted_stream.seek(0)
-
-    return formatted_stream
 
 
 def upload_pdf_to_sharepoint(
