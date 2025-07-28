@@ -275,7 +275,6 @@ async def process_workqueue(workqueue: Workqueue):
                 print(f"Processing item with reference: {reference}")
 
                 # sharepoint_api.append_row_to_sharepoint_excel(
-                #     required_headers=["Serial number"],
                 #     folder_name=folder_name,
                 #     excel_file_name=excel_file_name,
                 #     sheet_name=SHEET_NAME,
@@ -283,7 +282,6 @@ async def process_workqueue(workqueue: Workqueue):
                 # )
                 helper_functions.append_row_to_sharepoint_excel(
                     sharepoint=sharepoint_api,
-                    required_headers=None,
                     folder_name=folder_name,
                     excel_file_name=excel_file_name,
                     sheet_name=SHEET_NAME,
@@ -307,14 +305,17 @@ async def process_workqueue(workqueue: Workqueue):
                 item.fail(str(e))
 
         # sharepoint_api.format_and_sort_excel_file(
-        #     folder_name=folder_name,
-        #     excel_file_name=excel_file_name,
-        #     sheet_name=SHEET_NAME,
-        #     sorting_keys=[{"key": "A", "ascending": False, "type": "str"}],
-        #     bold_rows=[1],
-        #     align_horizontal="left",
-        #     align_vertical="top",
-        #     freeze_panes="A2"
+            # folder_name=folder_name,
+            # excel_file_name=excel_file_name,
+            # sheet_name=SHEET_NAME,
+            # sorting_keys=[{"key": "A", "ascending": False, "type": "str"}],
+            # bold_rows=[1],
+            # align_horizontal="left",
+            # align_vertical="top",
+            # italic_rows=None,
+            # font_config=None,
+            # column_widths=100,
+            # freeze_panes="A2"
         # )
         helper_functions.format_and_sort_excel_file(
             sharepoint=sharepoint_api,
