@@ -207,7 +207,7 @@ def format_and_sort_excel_file(
     #
     # Then, for wrapped cells, auto-adjust the row height:
     # - Estimate how many lines the wrapped text would occupy and set row height accordingly to ensure all content is visible
-    if column_widths == "auto":
+    if column_widths in (None, "auto"):
         for col in ws.columns:
             max_len = max(len(str(cell.value or "")) for cell in col)
 
@@ -244,6 +244,9 @@ def format_and_sort_excel_file(
                     max_line_count = max(max_line_count, line_count)
 
             ws.row_dimensions[row[0].row].height = max_line_count * 20
+
+    else:
+        raise ValueError(f"Column width provided with incorrect datatype - datatype int expected, instead column width is of datatype {type(column_widths)}")
 
     # Step 7 - Freeze panes if needed
     if freeze_panes:
