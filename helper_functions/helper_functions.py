@@ -195,38 +195,7 @@ def format_and_sort_excel_file(
     for _, row in df.iterrows():
         ws.append(list(row))
 
-    # Step 6 – Apply base formatting
-    # For each cell in the worksheet:
-    # - Apply font styling based on either a custom `font_config` (row-specific) or default to bold/italic based on row number (e.g., header rows)
-    # - Set horizontal and vertical alignment for consistent layout
-    # - Disable text wrapping by default (wrapping will be handled later if needed)
-    #
-    # This ensures a clean, uniform look across the sheet while allowing for custom styling where defined.
-    for row_idx, row in enumerate(ws.iter_rows(), start=1):
-        for cell in row:
-            if font_config and row_idx in font_config:
-                config = font_config[row_idx]
-
-                cell.font = Font(
-                    name=config.get("name", "Calibri"),
-                    size=config.get("size", 11),
-                    bold=config.get("bold", False),
-                    italic=config.get("italic", False),
-                )
-
-            else:
-                cell.font = Font(
-                    bold=row_idx in bold_rows if bold_rows else False,
-                    italic=row_idx in italic_rows if italic_rows else False,
-                )
-
-            cell.alignment = Alignment(
-                horizontal=align_horizontal,
-                vertical=align_vertical,
-                wrap_text=False
-            )
-
-    # Step 7 – Adjust column widths and apply wrapping if needed
+    # Step 6 – Adjust column widths and apply wrapping if needed
     #
     # If column_widths is "auto":
     # - Calculate the max content length in each column and set the column width accordingly (+2 for padding)
@@ -276,9 +245,40 @@ def format_and_sort_excel_file(
 
             ws.row_dimensions[row[0].row].height = max_line_count * 20
 
-    # Step 8 - Freeze panes if needed
+    # Step 7 - Freeze panes if needed
     if freeze_panes:
         ws.freeze_panes = freeze_panes
+
+    # Step 8 – Apply base formatting
+    # For each cell in the worksheet:
+    # - Apply font styling based on either a custom `font_config` (row-specific) or default to bold/italic based on row number (e.g., header rows)
+    # - Set horizontal and vertical alignment for consistent layout
+    # - Disable text wrapping by default (wrapping will be handled later if needed)
+    #
+    # This ensures a clean, uniform look across the sheet while allowing for custom styling where defined.
+    for row_idx, row in enumerate(ws.iter_rows(), start=1):
+        for cell in row:
+            if font_config and row_idx in font_config:
+                config = font_config[row_idx]
+
+                cell.font = Font(
+                    name=config.get("name", "Calibri"),
+                    size=config.get("size", 11),
+                    bold=config.get("bold", False),
+                    italic=config.get("italic", False),
+                )
+
+            else:
+                cell.font = Font(
+                    bold=row_idx in bold_rows if bold_rows else False,
+                    italic=row_idx in italic_rows if italic_rows else False,
+                )
+
+            cell.alignment = Alignment(
+                horizontal=align_horizontal,
+                vertical=align_vertical,
+                wrap_text=cell.alignment.wrap_text
+            )
 
     # Step 9 - Save and re-upload
     temp_stream = BytesIO()
