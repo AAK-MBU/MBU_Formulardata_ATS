@@ -28,18 +28,21 @@ LINE_BREAK = "\n\n\n" + "-" * 125 + "\n\n\n"
 
 load_dotenv()  # Loads variables from .env
 
-USERNAME = os.getenv("SvcRpaMBU002_USERNAME")  # Change to fetch from automation server credential
-PASSWORD = os.getenv("SvcRpaMBU002_PASSWORD")  # Change to fetch from automation server credential
-
-DB_CONN_STRING = os.getenv("DbConnectionString")  # Change to fetch from automation server credential?
-
 ATS_URL = os.getenv("ATS_URL")
 ATS_TOKEN = os.getenv("ATS_TOKEN")
+
+DB_CONN_STRING = os.getenv("DbConnectionString")
+
+SVC_RPA_CREDENTIAL = helper_functions.load_credential(url=ATS_URL, token=ATS_TOKEN, credential_name="SvcRpaMBU002 RPA Login")
+USERNAME = SVC_RPA_CREDENTIAL.get("username", "")
+PASSWORD = SVC_RPA_CREDENTIAL.get("password", "")
 
 SHAREPOINT_FOLDER_URL = "https://aarhuskommune.sharepoint.com"
 SHAREPOINT_DOCUMENT_LIBRARY = "Delte dokumenter"
 
 SHEET_NAME = "Besvarelser"
+
+sys.exit()
 
 
 async def populate_queue(workqueue: Workqueue):
