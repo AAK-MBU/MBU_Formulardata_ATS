@@ -28,21 +28,6 @@ LINE_BREAK = "\n\n\n" + "-" * 125 + "\n\n\n"
 
 load_dotenv()  # Loads variables from .env
 
-ATS_URL = os.getenv("ATS_URL")
-ATS_TOKEN = os.getenv("ATS_TOKEN")
-
-DB_CONN_STRING = os.getenv("DbConnectionString")
-
-SVC_RPA_CREDENTIAL = helper_functions.load_credential(url=ATS_URL, token=ATS_TOKEN, credential_name="SvcRpaMBU002 RPA Login")
-USERNAME = SVC_RPA_CREDENTIAL.get("username", "")
-PASSWORD = SVC_RPA_CREDENTIAL.get("password", "")
-
-SHAREPOINT_FOLDER_URL = "https://aarhuskommune.sharepoint.com"
-SHAREPOINT_DOCUMENT_LIBRARY = "Delte dokumenter"
-
-SHEET_NAME = "Besvarelser"
-
-sys.exit()
 
 
 async def populate_queue(workqueue: Workqueue):
@@ -341,6 +326,31 @@ if __name__ == "__main__":
     ats = AutomationServer.from_environment()
 
     test_workqueue = ats.workqueue()
+
+
+
+
+    ATS_URL = os.getenv("ATS_URL")
+    ATS_TOKEN = os.getenv("ATS_TOKEN")
+
+    DB_CONN_STRING = os.getenv("DbConnectionString")
+
+    SVC_RPA_CREDENTIAL = helper_functions.load_credential(url=ATS_URL, token=ATS_TOKEN, credential_name="SvcRpaMBU002 RPA Login")
+    USERNAME = SVC_RPA_CREDENTIAL.get("username", "")
+    PASSWORD = SVC_RPA_CREDENTIAL.get("password", "")
+
+    SHAREPOINT_FOLDER_URL = "https://aarhuskommune.sharepoint.com"
+    SHAREPOINT_DOCUMENT_LIBRARY = "Delte dokumenter"
+
+    SHEET_NAME = "Besvarelser"
+
+    sys.exit()
+
+
+
+
+
+
 
     print("Workqueue:", test_workqueue)
 
