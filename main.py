@@ -29,7 +29,6 @@ LINE_BREAK = "\n\n\n" + "-" * 125 + "\n\n\n"
 load_dotenv()  # Loads variables from .env
 
 
-
 async def populate_queue(workqueue: Workqueue):
     """
     Function to populate the workqueue with items.
@@ -343,6 +342,16 @@ if __name__ == "__main__":
     SHAREPOINT_DOCUMENT_LIBRARY = "Delte dokumenter"
 
     SHEET_NAME = "Besvarelser"
+
+    print("printing all env vars")
+    print(f"ats_url: {ATS_URL}")
+    print(f"ats_token: {ATS_TOKEN}")
+    print(f"db_conn_string: {DB_CONN_STRING}")
+    print(f"username: {USERNAME}")
+    print(f"password: {PASSWORD}")
+
+
+
 
     sys.exit()
 
