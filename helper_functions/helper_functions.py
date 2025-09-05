@@ -14,6 +14,8 @@ from sqlalchemy import create_engine
 
 from mbu_dev_shared_components.msoffice365.sharepoint_api.files import Sharepoint
 
+from helper_functions import formular_mappings
+
 
 def load_credential(url, token, credential_name: str) -> dict:
     """
@@ -35,6 +37,9 @@ def load_credential(url, token, credential_name: str) -> dict:
     response.raise_for_status()
 
     credential = response.json()
+
+    print(credential)
+    exit()
 
     # Parse the JSON string stored in the 'data' field
     try:
@@ -178,6 +183,23 @@ def get_forms_data(conn_string: str, form_type: str) -> list[dict]:
     return extracted_data
 
 
+def build_df(submissions, mapping):
+    """
+    Build a DataFrame from the given submissions and mapping for the specified role.
+    The role determines which mapping to use and which submissions to include.
+    """
+
+    rows = []
+
+    for submission in submissions:
+
+        serial = submission["entity"]["serial"][0]["value"]
+
+        rows.append(formular_mappings.transform_form_submission(serial, submission, mapping))
+
+    return pd.DataFrame(rows)
+
+
 def upload_pdf_to_sharepoint(
     sharepoint_api: Sharepoint,
     folder_name: str,
@@ -187,8 +209,6 @@ def upload_pdf_to_sharepoint(
     """Main function to upload a PDF to Sharepoint."""
 
     print("Upload PDF to Sharepoint started.")
-
-    existing_pdfs_sum = 0
 
     existing_pdfs = sharepoint_api.fetch_files_list(folder_name=folder_name)
 

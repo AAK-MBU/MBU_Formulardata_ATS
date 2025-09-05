@@ -1,0 +1,5 @@
+automation-server-client
+OpenOrchestrator==1.*
+mbu-dev-shared-components>=0.4.2
+pandas>=2.2.3
+python-dotenv>=1.0.1
