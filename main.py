@@ -19,23 +19,45 @@ from automation_server_client import AutomationServer, Workqueue, WorkItemError
 
 from mbu_dev_shared_components.msoffice365.sharepoint_api.files import Sharepoint
 
-from mbu_dev_shared_components.database.constants import Constants
 from mbu_dev_shared_components.database.connection import RPAConnection
 
-from helper_functions import helper_functions
+from sub_processes import helper_functions
+from sub_processes import formular_mappings
 
-from helper_functions import formular_mappings
+# from sub_processes import populate_queue_flow
+# from sub_processes import process_queue_flow
 
-LINE_BREAK = "\n\n\n" + "-" * 125 + "\n\n\n"
+
+### REMOVE IN PRODUCTION ###
+# import requests
+# import urllib3
+# urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# _old_request = requests.Session.request
+
+
+# def unsafe_request(self, *args, **kwargs):
+#     """
+#     TESTING PURPOSES ONLY - DISABLES SSL VERIFICATION FOR ALL REQUESTS
+#     """
+#     kwargs['verify'] = False
+#     return _old_request(self, *args, **kwargs)
+
+
+# requests.Session.request = unsafe_request
+### REMOVE IN PRODUCTION ###
+
 
 load_dotenv()  # Loads variables from .env
 
 ATS_URL = os.getenv("ATS_URL")
 ATS_TOKEN = os.getenv("ATS_TOKEN")
 
-DB_CONN_STRING = os.getenv("DbConnectionString")
+DB_CONN_STRING = os.getenv("DBConnectionStringProd")
+# DB_CONN_STRING = os.getenv("DbConnectionString")  # UNCOMMENT FOR DEV TESTING
 
-DB_CONSTANTS = Constants()
+# TEMPORARY OVERRIDE: Set a new env variable in memory only
+os.environ["DbConnectionString"] = os.getenv("DBConnectionStringProd")
 
 RPA_CONN = RPAConnection(db_env="PROD", commit=False)
 with RPA_CONN:
@@ -122,11 +144,6 @@ async def populate_queue(workqueue: Workqueue):
         },
     }
 
-    site_name = ""
-    folder_name = ""
-    excel_file_name = ""
-    formular_mapping = None
-
     upload_pdfs_to_sharepoint_folder_name = ""
 
     existing_workqueue_items = helper_functions.get_workqueue_items(
@@ -136,22 +153,25 @@ async def populate_queue(workqueue: Workqueue):
     )
 
     for os2_webform_id, config in webforms_config.items():
+        if os2_webform_id in existing_workqueue_items:
+            continue
+
+        if not config:
+            continue
+
         if os2_webform_id not in (
             "spoergeskema_hypnoterapi_foer_fo",
         ):
             continue
 
-        config = webforms_config.get(os2_webform_id)
-        if not config:
-            continue
+        new_submissions = []
 
         site_name = config["site_name"]
         folder_name = config["folder_name"]
         excel_file_name = config["excel_file_name"]
         formular_mapping = config["formular_mapping"]
 
-        if "upload_pdfs_to_sharepoint_folder_name" in config:
-            upload_pdfs_to_sharepoint_folder_name = config["upload_pdfs_to_sharepoint_folder_name"]
+        upload_pdfs_to_sharepoint_folder_name = config.get("upload_pdfs_to_sharepoint_folder_name", "")
 
         testing = True
         if testing:
@@ -163,15 +183,12 @@ async def populate_queue(workqueue: Workqueue):
 
         print(f"Looping through submissions for webform_id: {os2_webform_id}")
 
-        new_submissions = 0
-        new_submissions__already_in_workqueue = 0
-
         print("STEP 1 - Fetching all active submissions.\n")
         all_submissions = helper_functions.get_forms_data(
             conn_string=DB_CONN_STRING,
             form_type=os2_webform_id,
         )
-        print(f"OS2 submissions retrieved. {len(all_submissions)} active submissions found.")
+        print(f"OS2 submissions retrieved. {len(all_submissions)} total submissions found.")
 
         # Modersmaalsundervisning has a different flow - therefore we skip the Excel overwrite functionality if we are currently running that formular
         if os2_webform_id != "tilmelding_til_modersmaalsunderv":
@@ -228,48 +245,32 @@ async def populate_queue(workqueue: Workqueue):
             for form in all_submissions:
                 form_serial_number = form["entity"]["serial"][0]["value"]
 
-                form_uuid = form["entity"]["uuid"][0]["value"]
-
                 # If the form's serial number is already in the Excel file, skip it
                 if form_serial_number in serial_set:
                     continue
 
-                new_submissions += 1
+                transformed_row = helper_functions.transform_form_submission(form_serial_number, form, formular_mapping)
 
-                # If the form UUID is already in the workqueue, skip it
-                if form_uuid in existing_workqueue_items:
-                    print(f"Form with UUID {form_uuid} already exists in workqueue, skipping.")
-
-                    new_submissions__already_in_workqueue += 1
-
-                    continue
-
-                transformed_row = formular_mappings.transform_form_submission(form_serial_number, form, formular_mapping)
+                new_submissions.append(transformed_row)
 
                 work_item_data = {
-                    "webform_id": os2_webform_id,
                     "site_name": site_name,
                     "folder_name": folder_name,
                     "excel_file_name": excel_file_name,
-                    "data": transformed_row,
+                    "data": new_submissions
                 }
 
                 if "upload_pdfs_to_sharepoint_folder_name" in config and upload_pdfs_to_sharepoint_folder_name != "":
                     work_item_data["upload_pdfs_to_sharepoint_folder_name"] = upload_pdfs_to_sharepoint_folder_name
-
                     work_item_data["pdf_url"] = form["data"]["attachments"]["besvarelse_i_pdf_format"]["url"]
 
                 print("STEP 5 - Adding new submission to workqueue.")
                 workqueue.add_item(
-                    data=work_item_data,
-                    reference=form_uuid
+                    reference=os2_webform_id,
+                    data=work_item_data
                 )
 
-                print(f"Added form with reference: {form_uuid} to workqueue.\n")
-
-            print(f"New submissions not in Excel file: {new_submissions}. Of these, {new_submissions__already_in_workqueue} are already present in workqueue\n")
-
-        print(LINE_BREAK)
+                print(f"Added submissions for webform, {os2_webform_id}, to workqueue.\n")
 
 
 async def process_workqueue(workqueue: Workqueue):
@@ -282,7 +283,7 @@ async def process_workqueue(workqueue: Workqueue):
     for item in workqueue:
         reference = item.reference
 
-        data = item.get_data_as_dict()
+        data = item.data
 
         site_name = data.get("site_name")
         folder_name = data.get("folder_name")
@@ -354,8 +355,6 @@ if __name__ == "__main__":
     print(f"Workqueue: {test_workqueue}\n")
 
     if "--queue" in sys.argv:
-        print("Queue argument detected, clearing workqueue...")
-
         asyncio.run(populate_queue(test_workqueue))
 
         print("Workqueue populated with new items.\n")
@@ -364,4 +363,5 @@ if __name__ == "__main__":
 
     else:
         asyncio.run(process_workqueue(test_workqueue))
+
         print("Workqueue processing completed.")

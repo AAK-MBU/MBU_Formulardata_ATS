@@ -1,9 +1,0 @@
-README.md
-pyproject.toml
-helper_functions/formular_mappings.py
-helper_functions/helper_functions.py
-mbu_formulardata_ats.egg-info/PKG-INFO
-mbu_formulardata_ats.egg-info/SOURCES.txt
-mbu_formulardata_ats.egg-info/dependency_links.txt
-mbu_formulardata_ats.egg-info/requires.txt
-mbu_formulardata_ats.egg-info/top_level.txt
