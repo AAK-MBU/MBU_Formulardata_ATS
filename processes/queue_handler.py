@@ -139,7 +139,7 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
             new_submissions.append(transformed_row)
 
         work_item_data = {
-            "reference": f"{os2_webform_id}_{TODAYS_DATE}",
+            "reference": f"{os2_webform_id}_{TODAYS_DATE}_test",
             "data": {"config": form_config, "submissions": new_submissions},
         }
 
