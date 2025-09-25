@@ -28,7 +28,7 @@ load_dotenv()  # Loads variables from .env
 # ╔══════════════════════════════════════════════╗
 # ║ 🔥 REMOVE BEFORE DEPLOYMENT (TEMP OVERRIDES) 🔥 ║
 # ╚══════════════════════════════════════════════╝
-# # This block disables SSL verification and overrides env vars
+# This block disables SSL verification and overrides env vars
 # import requests
 # import urllib3
 # urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)

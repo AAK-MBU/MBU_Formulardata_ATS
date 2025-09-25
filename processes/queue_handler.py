@@ -68,23 +68,23 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
 
         form_config["excel_file_exists"] = False
 
-        try:
-            sharepoint_api = Sharepoint(
-                tenant=sharepoint_kwargs["tenant"],
-                client_id=sharepoint_kwargs["client_id"],
-                thumbprint=sharepoint_kwargs["thumbprint"],
-                cert_path=sharepoint_kwargs["cert_path"],
-                site_url=SHAREPOINT_SITE_URL,
-                site_name=site_name,
-                document_library=SHAREPOINT_DOCUMENT_LIBRARY,
-            )
+        # try:
+        #     sharepoint_api = Sharepoint(
+        #         tenant=sharepoint_kwargs["tenant"],
+        #         client_id=sharepoint_kwargs["client_id"],
+        #         thumbprint=sharepoint_kwargs["thumbprint"],
+        #         cert_path=sharepoint_kwargs["cert_path"],
+        #         site_url=SHAREPOINT_SITE_URL,
+        #         site_name=site_name,
+        #         document_library=SHAREPOINT_DOCUMENT_LIBRARY,
+        #     )
 
-        except Exception as e:
-            logger.info(f"Error when trying to authenticate: {e}")
+        # except Exception as e:
+        #     logger.info(f"Error when trying to authenticate: {e}")
 
         logger.info(f"Looping through submissions for webform_id: {os2_webform_id}")
 
-        logger.info("STEP 1 - Fetching all active submissions.\n")
+        logger.info("STEP 1 - Fetching all active submissions.")
         all_submissions = helper_functions.get_forms_data(
             conn_string=db_conn_string,
             form_type=os2_webform_id,
@@ -94,29 +94,29 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
 
         serial_set = set()
 
-        try:
-            files_in_sharepoint = sharepoint_api.fetch_files_list(folder_name=folder_name)
-            file_names = [f["Name"] for f in files_in_sharepoint]
+        # try:
+        #     files_in_sharepoint = sharepoint_api.fetch_files_list(folder_name=folder_name)
+        #     file_names = [f["Name"] for f in files_in_sharepoint]
 
-        except Exception as e:
-            logger.info(f"Error when trying to fetch existing files in SharePoint: {e}")
+        # except Exception as e:
+        #     logger.info(f"Error when trying to fetch existing files in SharePoint: {e}")
 
-        if excel_file_name in file_names:
-            form_config["excel_file_exists"] = True
+        # if excel_file_name in file_names:
+        #     form_config["excel_file_exists"] = True
 
-            # If the Excel file exists, we fetch it and load it into a DataFrame, so we can compare serial numbers
-            logger.info("STEP 3 - Retrieving existing Excel sheet.")
-            excel_file = sharepoint_api.fetch_file_using_open_binary(
-                excel_file_name,
-                folder_name
-            )
+        #     # If the Excel file exists, we fetch it and load it into a DataFrame, so we can compare serial numbers
+        #     logger.info("STEP 3 - Retrieving existing Excel sheet.")
+        #     excel_file = sharepoint_api.fetch_file_using_open_binary(
+        #         excel_file_name,
+        #         folder_name
+        #     )
 
-            excel_stream = BytesIO(excel_file)
-            excel_file_df = pd.read_excel(io=excel_stream, sheet_name="Besvarelser")
+        #     excel_stream = BytesIO(excel_file)
+        #     excel_file_df = pd.read_excel(io=excel_stream, sheet_name="Besvarelser")
 
-            # Create a set of serial numbers from the Excel file
-            serial_set = set(excel_file_df["Serial number"].tolist())
-            logger.info(f"Excel file retrieved. {len(excel_file_df)} rows found in existing sheet.")
+        #     # Create a set of serial numbers from the Excel file
+        #     serial_set = set(excel_file_df["Serial number"].tolist())
+        #     logger.info(f"Excel file retrieved. {len(excel_file_df)} rows found in existing sheet.")
 
         # Loop through all active submissions and transform them to the correct format
         logger.info("STEP 4 - Looping submissions and mapping retrieved data to fit Excel column names.")
@@ -149,6 +149,9 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
 
         if len(new_submissions) > 0:
             queue_items.append(work_item_data)
+
+        print()
+        print()
 
     return queue_items
 

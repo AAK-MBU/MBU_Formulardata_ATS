@@ -20,11 +20,10 @@ from sqlalchemy import create_engine
 from mbu_dev_shared_components.msoffice365.sharepoint_api.files import Sharepoint
 
 
-def transform_form_submission(form_serial_number, form: dict, mapping: dict) -> dict:
+def transform_form_submission(form_serial_number: str, form: dict, mapping: dict) -> dict:
     """
-    Transforms a form submission dictionary using the provided mapping.
-    Ensures output columns follow the order defined in the mapping.
-    Handles nested mappings, lists, and string cleanup.
+    Transforms a form submission using a mapping of form keys to output labels.
+    Supports both flat and nested mappings (e.g., tables of questions).
     """
 
     transformed = {}
@@ -32,75 +31,42 @@ def transform_form_submission(form_serial_number, form: dict, mapping: dict) -> 
 
     for source_key, target in mapping.items():
         if isinstance(target, dict):
-            # Handle nested mapping (e.g. tables)
             nested_data = form_data.get(source_key, {})
-            for nested_key, nested_target_column in target.items():
-                value = nested_data.get(nested_key, None)
-
-                if isinstance(value, list):
-                    value = ", ".join(str(item) for item in value)
-                elif isinstance(value, str):
-                    value = value.replace("\r\n", ". ").replace("\n", ". ")
-                    if value.startswith("[") and value.endswith("]"):
-                        try:
-                            parsed = ast.literal_eval(value)
-                            if isinstance(parsed, list):
-                                value = ", ".join(str(item) for item in parsed)
-                        except Exception:
-                            value = (
-                                value.strip("[]")
-                                .replace("'", "")
-                                .replace('"', "")
-                                .strip()
-                            )
-
-                transformed[nested_target_column] = value
-
+            for nested_key, output_column in target.items():
+                transformed[output_column] = _clean_value(nested_data.get(nested_key))
         else:
-            # Normal single-field mapping
-            value = form_data.get(source_key, None)
+            transformed[target] = _clean_value(form_data.get(source_key))
 
-            if isinstance(value, list):
-                value = ", ".join(str(item) for item in value)
-            elif isinstance(value, str):
-                value = value.replace("\r\n", ". ").replace("\n", ". ")
-                if value.startswith("[") and value.endswith("]"):
-                    try:
-                        parsed = ast.literal_eval(value)
-                        if isinstance(parsed, list):
-                            value = ", ".join(str(item) for item in parsed)
-                    except Exception:
-                        value = (
-                            value.strip("[]")
-                            .replace("'", "")
-                            .replace('"', "")
-                            .strip()
-                        )
-
-            transformed[target] = value
-
-    # Process date/time fields from the "entity" section
-    try:
-        created_str = form["entity"]["created"][0]["value"]
-        completed_str = form["entity"]["completed"][0]["value"]
-
-        created_dt = datetime.fromisoformat(created_str)
-        completed_dt = datetime.fromisoformat(completed_str)
-
-        transformed["Oprettet"] = created_dt.strftime("%Y-%m-%d %H:%M:%S")
-        transformed["Gennemført"] = completed_dt.strftime("%Y-%m-%d %H:%M:%S")
-    except (KeyError, IndexError, ValueError):
-        transformed["Oprettet"] = None
-        transformed["Gennemført"] = None
-
+    # Add entity fields
+    entity = form.get("entity", {})
     transformed["Serial number"] = form_serial_number
+    transformed["Oprettet"] = _parse_datetime(entity, "created")
+    transformed["Gennemført"] = _parse_datetime(entity, "completed")
 
-    # 🔑 Reorder according to mapping.values()
-    ordered = OrderedDict(
-        (target, transformed.get(target)) for target in mapping.values()
-    )
+    return transformed
 
-    return ordered
+
+def _clean_value(value):
+    """Cleans and flattens lists or JSON-encoded strings."""
+    if isinstance(value, list):
+        return ", ".join(str(v) for v in value)
+    if isinstance(value, str):
+        value = value.replace("\r\n", ". ").replace("\n", ". ")
+        try:
+            parsed = ast.literal_eval(value)
+            if isinstance(parsed, list):
+                return ", ".join(str(v) for v in parsed)
+        except Exception:
+            return value.strip("[]").replace("'", "").replace('"', "").strip()
+    return value
+
+
+def _parse_datetime(entity, key):
+    try:
+        raw = entity[key][0]["value"]
+        return datetime.fromisoformat(raw).strftime("%Y-%m-%d %H:%M:%S")
+    except Exception:
+        return None
 
 
 def get_workqueue_items(url, token, workqueue_id):
