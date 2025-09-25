@@ -138,6 +138,8 @@ async def process_workqueue(workqueue: Workqueue):
 
                 reset(logger=logger)
 
+        break
+
     logger.info("Finished processing workqueue.")
     close(logger=logger)
 
