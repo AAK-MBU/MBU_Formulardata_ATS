@@ -1,55 +1,99 @@
 """Module to handle item processing"""
 
+import logging
+
 from dotenv import load_dotenv
 
 from io import BytesIO
 
-from mbu_dev_shared_components.msoffice365.sharepoint_api.files import Sharepoint
+from mbu_dev_shared_components.database.connection import RPAConnection
+
+from mbu_msoffice_integration.sharepoint_class import Sharepoint
 
 from helpers import helper_functions
-from helpers import formular_mappings
 
 load_dotenv()  # Loads variables from .env
 
+SHAREPOINT_SITE_URL = "https://aarhuskommune.sharepoint.com"
+SHAREPOINT_DOCUMENT_LIBRARY = "Delte dokumenter"
+
 SHEET_NAME = "Besvarelser"
 
+RPA_CONN = RPAConnection(db_env="PROD", commit=False)
+with RPA_CONN:
+    OS2_API_KEY = RPA_CONN.get_credential("os2_api").get("decrypted_password", "")
 
-def process_item(item_data: dict, sharepoint_api: Sharepoint, os2_api_key: str):
+logger = logging.getLogger(__name__)
+
+
+def process_item(item_data: dict, sharepoint_kwargs: dict):
     """Function to handle item processing"""
-    print(item_data)
 
-    os2_webform_id = item_data.get("os2_webform_id", "")
     config = item_data.get("config", {})
-    new_submissions = item_data.get("submissions", [])
 
     site_name = config["site_name"]
     folder_name = config["folder_name"]
     excel_file_name = config["excel_file_name"]
     formular_mapping = config["formular_mapping"]
-
     excel_file_exists = config.get("excel_file_exists", False)
 
-    print("STEP 2 - Checking if Excel file already exists in Sharepoint folder.")
+    upload_pdfs_to_sharepoint_folder_name = config.get("upload_pdfs_to_sharepoint_folder_name", "")
+    file_url = config.get("file_url", "")
+
+    new_submissions = item_data.get("submissions", [])
+
+    try:
+        sharepoint_api = Sharepoint(
+            tenant=sharepoint_kwargs["tenant"],
+            client_id=sharepoint_kwargs["client_id"],
+            thumbprint=sharepoint_kwargs["thumbprint"],
+            cert_path=sharepoint_kwargs["cert_path"],
+            site_url=SHAREPOINT_SITE_URL,
+            site_name=site_name,
+            document_library=SHAREPOINT_DOCUMENT_LIBRARY,
+        )
+
+    except Exception as e:
+        logger.info(f"Error when trying to authenticate: {e}")
+
     # If the Excel file does not exist, we create it with all existing submissions
     if not excel_file_exists:
-        print(f"Excel file '{config['excel_file_name']}' not found - creating new.")
+        logger.info(f"Excel file '{excel_file_name}' not found - creating new.")
 
         all_submissions_df = helper_functions.build_df(
-            new_submissions, config["formular_mapping"]
+            new_submissions,
+            formular_mapping
         )
 
         excel_stream = BytesIO()
-        all_submissions_df.to_excel(
-            excel_stream, index=False, engine="openpyxl", sheet_name=SHEET_NAME
-        )
+        all_submissions_df.to_excel(excel_stream, index=False, engine="openpyxl", sheet_name=SHEET_NAME)
         excel_stream.seek(0)
 
-        sharepoint_api.upload_file_from_bytes(
-            binary_content=excel_stream.getvalue(),
-            file_name=excel_file_name,
-            folder_name=folder_name,
-        )
+        try:
+            sharepoint_api.upload_file_from_bytes(
+                binary_content=excel_stream.getvalue(),
+                file_name=excel_file_name,
+                folder_name=folder_name,
+            )
 
+        except Exception as e:
+            logger.info(f"Error when trying to upload excel file to SharePoint: {e}")
+
+    elif excel_file_exists:
+        logger.info(f"Excel file '{excel_file_name}' already exists - appending new rows.")
+        try:
+            sharepoint_api.append_row_to_sharepoint_excel(
+                folder_name=folder_name,
+                excel_file_name=excel_file_name,
+                sheet_name=SHEET_NAME,
+                new_rows=new_submissions,
+            )
+
+        except Exception as e:
+            logger.info(f"Error when trying to append row to existing excel file in SharePoint: {e}")
+
+    logger.info("Formatting and sorting excel file")
+    try:
         sharepoint_api.format_and_sort_excel_file(
             folder_name=folder_name,
             excel_file_name=excel_file_name,
@@ -64,6 +108,15 @@ def process_item(item_data: dict, sharepoint_api: Sharepoint, os2_api_key: str):
             freeze_panes="A2",
         )
 
-        return
+    except Exception as e:
+        logger.info(f"Error when trying format and sort excel file: {e}")
 
-    return
+    if upload_pdfs_to_sharepoint_folder_name != "":
+        logger.info("Uploading PDFs to SharePoint.")
+
+        helper_functions.upload_pdf_to_sharepoint(
+            sharepoint_api=sharepoint_api,
+            folder_name=upload_pdfs_to_sharepoint_folder_name,
+            os2_api_key=OS2_API_KEY,
+            file_url=file_url,
+        )

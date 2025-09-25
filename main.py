@@ -92,11 +92,11 @@ async def process_workqueue(workqueue: Workqueue):
 
                     try:
                         logger.info(f"Processing item with reference: {reference}")
-                        process_item(data, reference)
+                        process_item(item_data=data, sharepoint_kwargs=SHAREPOINT_KWARGS)
 
-                        completed_state = CompletedState.completed(
-                            "Process completed without exceptions"
-                        )
+                        logger.info(f"Finished processing item with reference: {reference}")
+
+                        completed_state = CompletedState.completed("Process completed without exceptions")
                         item.complete(str(completed_state))
 
                         continue
@@ -108,6 +108,7 @@ async def process_workqueue(workqueue: Workqueue):
                             send_mail=False,
                             process_name=workqueue.name,
                         )
+
                         handle_error(
                             error=e,
                             log=logger.info,
@@ -116,6 +117,7 @@ async def process_workqueue(workqueue: Workqueue):
 
                     except Exception as e:
                         pe = ProcessError(str(e))
+
                         raise pe from e
 
             except ProcessError as e:
@@ -125,12 +127,15 @@ async def process_workqueue(workqueue: Workqueue):
                     send_mail=True,
                     process_name=workqueue.name,
                 )
+
                 handle_error(
                     error=e,
                     log=logger.error,
                     context=context,
                 )
+
                 error_count += 1
+
                 reset(logger=logger)
 
     logger.info("Finished processing workqueue.")

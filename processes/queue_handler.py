@@ -4,6 +4,8 @@ import os
 import asyncio
 import logging
 
+import datetime
+
 from io import BytesIO
 
 import pandas as pd
@@ -20,6 +22,8 @@ from helpers import helper_functions
 SHAREPOINT_SITE_URL = "https://aarhuskommune.sharepoint.com"
 SHAREPOINT_DOCUMENT_LIBRARY = "Delte dokumenter"
 
+TODAYS_DATE = datetime.date.today()
+
 logger = logging.getLogger(__name__)
 
 
@@ -27,8 +31,6 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
     """
     Function to populate the workqueue with items.
     """
-
-    print("Hello from populate workqueue!\n")
 
     ### STUFF FOR MODERSMAALSUNDERVISNING ###
     # today = datetime.date.today()
@@ -135,13 +137,13 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
             row_info["transformed_row"] = transformed_row
 
             if upload_pdfs_to_sharepoint_folder_name:
-                row_info["upload_pdfs_to_sharepoint_folder_name"] = (upload_pdfs_to_sharepoint_folder_name)
-                row_info["file_url"] = form["data"]["attachments"]["besvarelse_i_pdf_format"]["url"]
+                form_config["upload_pdfs_to_sharepoint_folder_name"] = upload_pdfs_to_sharepoint_folder_name
+                form_config["file_url"] = form["data"]["attachments"]["besvarelse_i_pdf_format"]["url"]
 
             new_submissions.append(row_info)
 
         work_item_data = {
-            "reference": os2_webform_id,
+            "reference": f"{os2_webform_id}_{TODAYS_DATE}",
             "data": {"config": form_config, "submissions": new_submissions},
         }
 
@@ -176,17 +178,23 @@ async def concurrent_add(workqueue: Workqueue, items: list[dict]) -> None:
             for attempt in range(1, config.MAX_RETRIES + 1):
                 try:
                     work_item = await asyncio.to_thread(
-                        workqueue.add_item, data, reference
+                        workqueue.add_item,
+                        data,
+                        reference
                     )
-                    logger.info(f"Added item to queue: {work_item}")
+                    logger.info(f"Added item to queue with reference: {reference}")
                     return True
+
                 except Exception as e:
                     if attempt >= config.MAX_RETRIES:
                         logger.error(
                             f"Failed to add item {reference} after {attempt} attempts: {e}"
                         )
+
                         return False
+
                     backoff = config.RETRY_BASE_DELAY * (2 ** (attempt - 1))
+
                     logger.warning(
                         f"Error adding {reference} (attempt {attempt}/{config.MAX_RETRIES}). "
                         f"Retrying in {backoff:.2f}s... {e}"
@@ -195,11 +203,13 @@ async def concurrent_add(workqueue: Workqueue, items: list[dict]) -> None:
 
     if not items:
         logger.info("No new items to add.")
+
         return
 
     results = await asyncio.gather(*(add_one(i) for i in items))
     successes = sum(1 for r in results if r)
     failures = len(results) - successes
+
     logger.info(
         f"Summary: {successes} succeeded, {failures} failed out of {len(results)}"
     )
