@@ -1,6 +1,6 @@
 [project]
 name = "mbu_formulardata_ats"
-version = "0.0.1"
+version = "0.0.2"
 description = "os2_formulardata_to_sharepoint_ats"
 readme = "README.md"
 requires-python = ">=3.13"
