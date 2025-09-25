@@ -47,6 +47,15 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
         if not form_config:
             continue
 
+        ### FOR DEV TESTING ONLY - OVERRIDE SITE AND FOLDER NAME TO AVOID POLLUTING ACTUAL FOLDERS ###
+        testing = True
+        if testing:
+            site_name = "MBURPA"
+            folder_name = "Automation_Server"
+            if "upload_pdfs_to_sharepoint_folder_name" in form_config:
+                upload_pdfs_to_sharepoint_folder_name = "Automation_Server/pdf"
+        ### FOR DEV TESTING ONLY - OVERRIDE SITE AND FOLDER NAME TO AVOID POLLUTING ACTUAL FOLDERS ###
+
         new_submissions = []
 
         site_name = form_config["site_name"]
@@ -57,15 +66,6 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
         upload_pdfs_to_sharepoint_folder_name = form_config.get("upload_pdfs_to_sharepoint_folder_name", "")
 
         form_config["excel_file_exists"] = False
-
-        ### FOR DEV TESTING ONLY - OVERRIDE SITE AND FOLDER NAME TO AVOID POLLUTING ACTUAL FOLDERS ###
-        testing = True
-        if testing:
-            site_name = "MBURPA"
-            folder_name = "Automation_Server"
-            if "upload_pdfs_to_sharepoint_folder_name" in form_config:
-                upload_pdfs_to_sharepoint_folder_name = "Automation_Server/pdf"
-        ### FOR DEV TESTING ONLY - OVERRIDE SITE AND FOLDER NAME TO AVOID POLLUTING ACTUAL FOLDERS ###
 
         try:
             sharepoint_api = Sharepoint(
