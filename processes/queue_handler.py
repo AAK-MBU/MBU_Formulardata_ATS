@@ -126,21 +126,17 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
             if form_serial_number in serial_set:
                 continue
 
-            row_info = {}
-
             transformed_row = helper_functions.transform_form_submission(
                 form_serial_number,
                 form,
                 formular_mapping
             )
 
-            row_info["transformed_row"] = transformed_row
-
             if upload_pdfs_to_sharepoint_folder_name:
                 form_config["upload_pdfs_to_sharepoint_folder_name"] = upload_pdfs_to_sharepoint_folder_name
                 form_config["file_url"] = form["data"]["attachments"]["besvarelse_i_pdf_format"]["url"]
 
-            new_submissions.append(row_info)
+            new_submissions.append(transformed_row)
 
         work_item_data = {
             "reference": f"{os2_webform_id}_{TODAYS_DATE}",
