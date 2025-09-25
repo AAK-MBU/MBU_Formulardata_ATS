@@ -21,8 +21,8 @@ from mbu_dev_shared_components.msoffice365.sharepoint_api.files import Sharepoin
 
 from mbu_dev_shared_components.database.connection import RPAConnection
 
-from processes import helper_functions
-from processes import formular_mappings
+from helpers import helper_functions
+from helpers import formular_mappings
 
 # from sub_processes import populate_queue_flow
 # from sub_processes import process_queue_flow
