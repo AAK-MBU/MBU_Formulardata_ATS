@@ -1,16 +1,21 @@
 [project]
 name = "mbu_formulardata_ats"
-version = "1.0.0"
-description = "dadj test project"
+version = "1.0.1"
+description = "os2_formulardata_to_sharepoint_ats"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "automation-server-client",
-    "OpenOrchestrator == 1.*",
+    "automation-server-client @ git+https://github.com/odense-rpa/automation-server-client.git",
     "mbu-dev-shared-components>=0.4.2",
+    "mbu_msoffice_integration>=1.0.1",
+    "OpenOrchestrator == 1.*",
+    "mbu-rpa-core",
     "pandas >= 2.2.3",
     "python-dotenv >= 1.0.1"
 ]
 
 [tool.uv.sources]
 automation-server-client = { git = "https://github.com/odense-rpa/automation-server-client.git", tag = "v0.2.0" }
+
+[tool.setuptools]
+py-modules = []

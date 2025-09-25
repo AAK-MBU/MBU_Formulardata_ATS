@@ -1,10 +1,13 @@
 """ Script to upload fetch an OS2-formular submission and upload it in pdf format to Sharepoint. """
-from urllib.parse import unquote, urlparse
 
 import json
-import urllib.parse
 
-from typing import Dict, Any
+import urllib.parse
+from urllib.parse import unquote, urlparse
+
+import ast
+
+from datetime import datetime
 
 import requests
 
@@ -14,94 +17,88 @@ from sqlalchemy import create_engine
 
 from mbu_dev_shared_components.msoffice365.sharepoint_api.files import Sharepoint
 
-from helper_functions import formular_mappings
 
-
-def load_credential(url, token, credential_name: str) -> dict:
+def transform_form_submission(form_serial_number, form: dict, mapping: dict) -> dict:
     """
-    Fetch a credential object from the Automation Server using its name,
-    and return the full credential dictionary with 'data' parsed into a dict.
+    Transforms a form submission dictionary using the provided mapping.
+    Handles nested mapping for fields like 'spoergsmaal_barn_tabel'.
     """
 
-    if not url or not token:
-        raise EnvironmentError("ATS_URL or ATS_TOKEN is not set in the environment")
+    transformed = {}
 
-    headers = {
-        "Authorization": f"Bearer {token}"
-    }
+    form_data = form.get("data", {})
 
-    full_url = f"{url}/credentials/by_name/{credential_name}"
+    for source_key, target in mapping.items():
+        # Check if we need to handle a nested mapping
+        if isinstance(target, dict):
+            nested_data = form_data.get(source_key, {})
 
-    response = requests.get(full_url, headers=headers, timeout=60)
+            for nested_key, nested_target_column in target.items():
+                value = nested_data.get(nested_key, None)
 
-    response.raise_for_status()
+                # Process the value: join lists, replace newlines, and convert list strings
+                if isinstance(value, list):
+                    value = ", ".join(str(item) for item in value)
 
-    credential = response.json()
+                elif isinstance(value, str):
+                    value = value.replace("\r\n", ". ").replace("\n", ". ")
 
-    print(credential)
-    exit()
+                    if value.startswith("[") and value.endswith("]"):
 
-    # Parse the JSON string stored in the 'data' field
+                        try:
+                            parsed = ast.literal_eval(value)
+
+                            if isinstance(parsed, list):
+                                value = ", ".join(str(item) for item in parsed)
+
+                        except Exception:
+                            value = value.strip("[]").replace("'", "").replace('"', "").strip()
+
+                transformed[nested_target_column] = value
+
+        else:
+            value = form_data.get(source_key, None)
+
+            if isinstance(value, list):
+                value = ", ".join(str(item) for item in value)
+
+            elif isinstance(value, str):
+                value = value.replace("\r\n", ". ").replace("\n", ". ")
+
+                if value.startswith("[") and value.endswith("]"):
+                    try:
+                        parsed = ast.literal_eval(value)
+
+                        if isinstance(parsed, list):
+                            value = ", ".join(str(item) for item in parsed)
+
+                    except Exception:
+                        value = value.strip("[]").replace("'", "").replace('"', "").strip()
+
+            transformed[target] = value
+
+    # Process date/time fields from the "entity" section
     try:
-        credential["data"] = json.loads(credential.get("data", "{}"))
+        created_str = form["entity"]["created"][0]["value"]
 
-        credential["username"] = credential.get("username", "")
+        completed_str = form["entity"]["completed"][0]["value"]
 
-        credential["password"] = credential.get("password", "")
+        created_dt = datetime.fromisoformat(created_str)
 
-    except json.JSONDecodeError:
-        credential["data"] = {}
+        completed_dt = datetime.fromisoformat(completed_str)
 
-        print(f"Warning: Failed to decode 'data' for credential '{credential_name}'.")
+        transformed["Oprettet"] = created_dt.strftime("%Y-%m-%d %H:%M:%S")
 
-    return credential
+        transformed["Gennemført"] = completed_dt.strftime("%Y-%m-%d %H:%M:%S")
 
+    except (KeyError, IndexError, ValueError):
+        transformed["Oprettet"] = None
 
-def get_database_constants(conn_string) -> Dict[str, Any]:
-    """Retrieve necessary credentials and constants from the orchestrator connection."""
+        transformed["Gennemført"] = None
 
-    query = """
-        SELECT
-            form_id,
-            form_data,
-            CAST(form_submitted_date AS datetime) AS form_submitted_date
-        FROM
-            [RPA].[journalizing].[Forms]
-        WHERE
-            form_type = ?
-            AND form_data IS NOT NULL
-            AND form_submitted_date IS NOT NULL
-        ORDER BY form_submitted_date DESC
-    """
+    transformed["Serial number"] = form_serial_number
 
-    # Create SQLAlchemy engine
-    encoded_conn_str = urllib.parse.quote_plus(conn_string)
-    engine = create_engine(f"mssql+pyodbc:///?odbc_connect={encoded_conn_str}")
-
-    try:
-        df = pd.read_sql(sql=query, con=engine, params=(form_type,))
-
-    except Exception as e:
-        print("Error during pd.read_sql:", e)
-
-        raise
-
-    if df.empty:
-        print("No submissions found for the given form type.")
-
-        return []
-
-    extracted_data = []
-    for _, row in df.iterrows():
-        try:
-            parsed = json.loads(row["form_data"])
-            if "purged" not in parsed:  # Skip purged entries
-                extracted_data.append(parsed)
-
-        except json.JSONDecodeError:
-            print("Invalid JSON in form_data, skipping row.")
-
-    return extracted_data
+    return transformed
 
 
 def get_workqueue_items(url, token, workqueue_id):
@@ -171,9 +168,11 @@ def get_forms_data(conn_string: str, form_type: str) -> list[dict]:
         return []
 
     extracted_data = []
+
     for _, row in df.iterrows():
         try:
             parsed = json.loads(row["form_data"])
+
             if "purged" not in parsed:  # Skip purged entries
                 extracted_data.append(parsed)
 
@@ -195,7 +194,7 @@ def build_df(submissions, mapping):
 
         serial = submission["entity"]["serial"][0]["value"]
 
-        rows.append(formular_mappings.transform_form_submission(serial, submission, mapping))
+        rows.append(transform_form_submission(serial, submission, mapping))
 
     return pd.DataFrame(rows)
 

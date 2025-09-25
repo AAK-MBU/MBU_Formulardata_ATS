@@ -4,10 +4,6 @@ file to contain formular mappings
 Ideally we wouldn't have to hardcode the mappings, but we the column names from the API are inconsistent in spelling and casing - therefore we need to map them to the correct column names in the Excel file.
 """
 
-import ast
-
-from datetime import datetime
-
 basisteam_spoergeskema_til_fagpe_mapping = {
     "serial": "Serial number",
     "created": "Oprettet",
@@ -247,86 +243,3 @@ tilmelding_til_modersmaalsunderv_mapping = {
     "telefonnummer_foraelder_02": "Partners/Medforælders telefonnummer",
     "statsborgerskab_medforaelder": "Partners/Medforælders statsborgerskab",
 }
-
-
-def transform_form_submission(form_serial_number, form: dict, mapping: dict) -> dict:
-    """
-    Transforms a form submission dictionary using the provided mapping.
-    Handles nested mapping for fields like 'spoergsmaal_barn_tabel'.
-    """
-
-    transformed = {}
-
-    form_data = form.get("data", {})
-
-    for source_key, target in mapping.items():
-        # Check if we need to handle a nested mapping
-        if isinstance(target, dict):
-            nested_data = form_data.get(source_key, {})
-
-            for nested_key, nested_target_column in target.items():
-                value = nested_data.get(nested_key, None)
-
-                # Process the value: join lists, replace newlines, and convert list strings
-                if isinstance(value, list):
-                    value = ", ".join(str(item) for item in value)
-
-                elif isinstance(value, str):
-                    value = value.replace("\r\n", ". ").replace("\n", ". ")
-
-                    if value.startswith("[") and value.endswith("]"):
-
-                        try:
-                            parsed = ast.literal_eval(value)
-
-                            if isinstance(parsed, list):
-                                value = ", ".join(str(item) for item in parsed)
-
-                        except Exception:
-                            value = value.strip("[]").replace("'", "").replace('"', "").strip()
-
-                transformed[nested_target_column] = value
-
-        else:
-            value = form_data.get(source_key, None)
-
-            if isinstance(value, list):
-                value = ", ".join(str(item) for item in value)
-
-            elif isinstance(value, str):
-                value = value.replace("\r\n", ". ").replace("\n", ". ")
-
-                if value.startswith("[") and value.endswith("]"):
-                    try:
-                        parsed = ast.literal_eval(value)
-
-                        if isinstance(parsed, list):
-                            value = ", ".join(str(item) for item in parsed)
-
-                    except Exception:
-                        value = value.strip("[]").replace("'", "").replace('"', "").strip()
-
-            transformed[target] = value
-
-    # Process date/time fields from the "entity" section
-    try:
-        created_str = form["entity"]["created"][0]["value"]
-
-        completed_str = form["entity"]["completed"][0]["value"]
-
-        created_dt = datetime.fromisoformat(created_str)
-
-        completed_dt = datetime.fromisoformat(completed_str)
-
-        transformed["Oprettet"] = created_dt.strftime("%Y-%m-%d %H:%M:%S")
-
-        transformed["Gennemført"] = completed_dt.strftime("%Y-%m-%d %H:%M:%S")
-
-    except (KeyError, IndexError, ValueError):
-        transformed["Oprettet"] = None
-
-        transformed["Gennemført"] = None
-
-    transformed["Serial number"] = form_serial_number
-
-    return transformed
