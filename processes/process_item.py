@@ -13,6 +13,7 @@ from mbu_dev_shared_components.database.connection import RPAConnection
 from mbu_msoffice_integration.sharepoint_class import Sharepoint
 
 from helpers import helper_functions
+from helpers.config import WEBFORMS_CONFIG
 
 load_dotenv()  # Loads variables from .env
 
@@ -36,8 +37,9 @@ def process_item(item_data: dict, sharepoint_kwargs: dict):
     site_name = config["site_name"]
     folder_name = config["folder_name"]
     excel_file_name = config["excel_file_name"]
-    formular_mapping = config["formular_mapping"]
     excel_file_exists = config.get("excel_file_exists", False)
+
+    formular_mapping = WEBFORMS_CONFIG["henvisningsskema_til_klinisk_hyp"]["formular_mapping"]
 
     upload_pdfs_to_sharepoint_folder_name = config.get("upload_pdfs_to_sharepoint_folder_name", "")
     file_url = config.get("file_url", "")
@@ -62,11 +64,18 @@ def process_item(item_data: dict, sharepoint_kwargs: dict):
     if not excel_file_exists:
         logger.info(f"Excel file '{excel_file_name}' not found - creating new.")
 
-        all_submissions_df = pd.DataFrame(new_submissions)
-
-        # 🔑 Force column order according to formular_mapping
+        # Force column order according to formular_mapping
         column_order = list(formular_mapping.values())
-        all_submissions_df = all_submissions_df.reindex(columns=column_order)
+
+        normalized_submissions = [
+            {col: row.get(col, None) for col in column_order}
+            for row in new_submissions
+        ]
+
+        all_submissions_df = pd.DataFrame(normalized_submissions, columns=column_order)
+
+        # Ensure no extra columns slipped in
+        all_submissions_df = all_submissions_df[column_order]
 
         excel_stream = BytesIO()
         all_submissions_df.to_excel(
@@ -83,6 +92,7 @@ def process_item(item_data: dict, sharepoint_kwargs: dict):
                 file_name=excel_file_name,
                 folder_name=folder_name,
             )
+
         except Exception as e:
             logger.info(f"Error when trying to upload excel file to SharePoint: {e}")
 

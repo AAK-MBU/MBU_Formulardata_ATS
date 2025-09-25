@@ -3,14 +3,15 @@
 import os
 import asyncio
 import logging
+import json
+
+from automation_server_client import Workqueue
 
 import datetime
 
 from io import BytesIO
 
 import pandas as pd
-
-from automation_server_client import Workqueue
 
 from mbu_msoffice_integration.sharepoint_class import Sharepoint
 
@@ -132,6 +133,9 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
                 formular_mapping
             )
 
+            if "formular_mapping" in form_config:
+                del form_config["formular_mapping"]
+
             if upload_pdfs_to_sharepoint_folder_name:
                 form_config["upload_pdfs_to_sharepoint_folder_name"] = upload_pdfs_to_sharepoint_folder_name
                 form_config["file_url"] = form["data"]["attachments"]["besvarelse_i_pdf_format"]["url"]
@@ -146,6 +150,14 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
         queue_items.append(work_item_data)
 
     return queue_items
+
+
+def create_sort_key(item: dict) -> str:
+    """
+    Create a sort key based on the entire JSON structure.
+    Converts the item to a sorted JSON string for consistent ordering.
+    """
+    return json.dumps(item, sort_keys=True, ensure_ascii=False)
 
 
 async def concurrent_add(workqueue: Workqueue, items: list[dict]) -> None:
@@ -173,11 +185,7 @@ async def concurrent_add(workqueue: Workqueue, items: list[dict]) -> None:
         async with sem:
             for attempt in range(1, config.MAX_RETRIES + 1):
                 try:
-                    work_item = await asyncio.to_thread(
-                        workqueue.add_item,
-                        data,
-                        reference
-                    )
+                    await asyncio.to_thread(workqueue.add_item, data, reference)
                     logger.info(f"Added item to queue with reference: {reference}")
                     return True
 
@@ -186,7 +194,6 @@ async def concurrent_add(workqueue: Workqueue, items: list[dict]) -> None:
                         logger.error(
                             f"Failed to add item {reference} after {attempt} attempts: {e}"
                         )
-
                         return False
 
                     backoff = config.RETRY_BASE_DELAY * (2 ** (attempt - 1))
@@ -199,10 +206,14 @@ async def concurrent_add(workqueue: Workqueue, items: list[dict]) -> None:
 
     if not items:
         logger.info("No new items to add.")
-
         return
 
-    results = await asyncio.gather(*(add_one(i) for i in items))
+    sorted_items = sorted(items, key=create_sort_key)
+    logger.info(
+        f"Processing {len(sorted_items)} items sorted by complete JSON structure"
+    )
+
+    results = await asyncio.gather(*(add_one(i) for i in sorted_items))
     successes = sum(1 for r in results if r)
     failures = len(results) - successes
 
