@@ -147,7 +147,8 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
             "data": {"config": form_config, "submissions": new_submissions},
         }
 
-        queue_items.append(work_item_data)
+        if len(new_submissions) > 0:
+            queue_items.append(work_item_data)
 
     return queue_items
 
