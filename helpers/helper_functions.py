@@ -186,22 +186,6 @@ def get_forms_data(conn_string: str, form_type: str) -> list[dict]:
     return extracted_data
 
 
-def build_df(submissions, mapping):
-    """
-    Build a DataFrame from the given submissions and mapping for the specified role.
-    The role determines which mapping to use and which submissions to include.
-    """
-
-    rows = []
-
-    for submission in submissions:
-        serial = submission["entity"]["serial"][0]["value"]
-
-        rows.append(transform_form_submission(serial, submission, mapping))
-
-    return pd.DataFrame(rows)
-
-
 def upload_pdf_to_sharepoint(
     sharepoint_api: Sharepoint,
     folder_name: str,

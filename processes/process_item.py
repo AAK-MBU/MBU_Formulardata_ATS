@@ -2,6 +2,8 @@
 
 import logging
 
+import pandas as pd
+
 from dotenv import load_dotenv
 
 from io import BytesIO
@@ -60,10 +62,7 @@ def process_item(item_data: dict, sharepoint_kwargs: dict):
     if not excel_file_exists:
         logger.info(f"Excel file '{excel_file_name}' not found - creating new.")
 
-        all_submissions_df = helper_functions.build_df(
-            new_submissions,
-            formular_mapping
-        )
+        all_submissions_df = pd.DataFrame(new_submissions)
 
         excel_stream = BytesIO()
         all_submissions_df.to_excel(excel_stream, index=False, engine="openpyxl", sheet_name=SHEET_NAME)
