@@ -4,8 +4,8 @@ This is the main entry point for the process
 
 import asyncio
 import logging
-import sys
 import os
+import sys
 
 from dotenv import load_dotenv
 

@@ -52,9 +52,7 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
         excel_file_name = form_config["excel_file_name"]
         formular_mapping = form_config["formular_mapping"]
 
-        upload_pdfs_to_sharepoint_folder_name = form_config.get(
-            "upload_pdfs_to_sharepoint_folder_name", ""
-        )
+        upload_pdfs_to_sharepoint_folder_name = form_config.get("upload_pdfs_to_sharepoint_folder_name", "")
 
         form_config["excel_file_exists"] = False
 
@@ -88,16 +86,13 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
             conn_string=db_conn_string,
             form_type=os2_webform_id,
         )
-        logger.info(
-            f"OS2 submissions retrieved. {len(all_submissions)} total submissions found."
-        )
+
+        logger.info(f"OS2 submissions retrieved. {len(all_submissions)} total submissions found.")
 
         serial_set = set()
 
         try:
-            files_in_sharepoint = sharepoint_api.fetch_files_list(
-                folder_name=folder_name
-            )
+            files_in_sharepoint = sharepoint_api.fetch_files_list(folder_name=folder_name)
             file_names = [f["Name"] for f in files_in_sharepoint]
 
         except Exception as e:
@@ -109,21 +104,19 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
             # If the Excel file exists, we fetch it and load it into a DataFrame, so we can compare serial numbers
             logger.info("STEP 3 - Retrieving existing Excel sheet.")
             excel_file = sharepoint_api.fetch_file_using_open_binary(
-                excel_file_name, folder_name
+                excel_file_name,
+                folder_name
             )
+
             excel_stream = BytesIO(excel_file)
             excel_file_df = pd.read_excel(io=excel_stream, sheet_name="Besvarelser")
 
             # Create a set of serial numbers from the Excel file
             serial_set = set(excel_file_df["Serial number"].tolist())
-            logger.info(
-                f"Excel file retrieved. {len(excel_file_df)} rows found in existing sheet."
-            )
+            logger.info(f"Excel file retrieved. {len(excel_file_df)} rows found in existing sheet.")
 
         # Loop through all active submissions and transform them to the correct format
-        logger.info(
-            "STEP 4 - Looping submissions and mapping retrieved data to fit Excel column names."
-        )
+        logger.info("STEP 4 - Looping submissions and mapping retrieved data to fit Excel column names.")
         for form in all_submissions:
             form_serial_number = form["entity"]["serial"][0]["value"]
 
@@ -134,18 +127,16 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
             row_info = {}
 
             transformed_row = helper_functions.transform_form_submission(
-                form_serial_number, form, formular_mapping
+                form_serial_number,
+                form,
+                formular_mapping
             )
 
             row_info["transformed_row"] = transformed_row
 
             if upload_pdfs_to_sharepoint_folder_name:
-                row_info["upload_pdfs_to_sharepoint_folder_name"] = (
-                    upload_pdfs_to_sharepoint_folder_name
-                )
-                row_info["file_url"] = form["data"]["attachments"][
-                    "besvarelse_i_pdf_format"
-                ]["url"]
+                row_info["upload_pdfs_to_sharepoint_folder_name"] = (upload_pdfs_to_sharepoint_folder_name)
+                row_info["file_url"] = form["data"]["attachments"]["besvarelse_i_pdf_format"]["url"]
 
             new_submissions.append(row_info)
 
