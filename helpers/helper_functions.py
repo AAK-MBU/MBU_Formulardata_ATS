@@ -142,7 +142,7 @@ def get_forms_data(conn_string: str, form_type: str) -> list[dict]:
             form_data,
             CAST(form_submitted_date AS datetime) AS form_submitted_date
         FROM
-            [RPA].[journalizing].[Forms]
+            [RPA].[journalizing].view_Journalizing
         WHERE
             form_type = ?
             AND form_data IS NOT NULL
