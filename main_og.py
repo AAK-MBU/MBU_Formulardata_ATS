@@ -126,9 +126,7 @@ async def populate_queue(workqueue: Workqueue):
     upload_pdfs_to_sharepoint_folder_name = ""
 
     existing_workqueue_items = helper_functions.get_workqueue_items(
-        url=ATS_URL,
-        token=ATS_TOKEN,
-        workqueue_id=workqueue.id
+        url=ATS_URL, token=ATS_TOKEN, workqueue_id=workqueue.id
     )
 
     for os2_webform_id, config in webforms_config.items():
@@ -138,9 +136,7 @@ async def populate_queue(workqueue: Workqueue):
         if not config:
             continue
 
-        if os2_webform_id not in (
-            "spoergeskema_hypnoterapi_foer_fo",
-        ):
+        if os2_webform_id not in ("spoergeskema_hypnoterapi_foer_fo",):
             continue
 
         new_submissions = []
@@ -150,7 +146,9 @@ async def populate_queue(workqueue: Workqueue):
         excel_file_name = config["excel_file_name"]
         formular_mapping = config["formular_mapping"]
 
-        upload_pdfs_to_sharepoint_folder_name = config.get("upload_pdfs_to_sharepoint_folder_name", "")
+        upload_pdfs_to_sharepoint_folder_name = config.get(
+            "upload_pdfs_to_sharepoint_folder_name", ""
+        )
 
         testing = True
         if testing:
@@ -158,7 +156,13 @@ async def populate_queue(workqueue: Workqueue):
             folder_name = "Automation_Server"
             upload_pdfs_to_sharepoint_folder_name = "Automation_Server/pdf"
 
-        sharepoint_api = Sharepoint(username=USERNAME, password=PASSWORD, site_url=SHAREPOINT_FOLDER_URL, site_name=site_name, document_library=SHAREPOINT_DOCUMENT_LIBRARY)
+        sharepoint_api = Sharepoint(
+            username=USERNAME,
+            password=PASSWORD,
+            site_url=SHAREPOINT_FOLDER_URL,
+            site_name=site_name,
+            document_library=SHAREPOINT_DOCUMENT_LIBRARY,
+        )
 
         print(f"Looping through submissions for webform_id: {os2_webform_id}")
 
@@ -167,29 +171,39 @@ async def populate_queue(workqueue: Workqueue):
             conn_string=DB_CONN_STRING,
             form_type=os2_webform_id,
         )
-        print(f"OS2 submissions retrieved. {len(all_submissions)} total submissions found.")
+        print(
+            f"OS2 submissions retrieved. {len(all_submissions)} total submissions found."
+        )
 
         # Modersmaalsundervisning has a different flow - therefore we skip the Excel overwrite functionality if we are currently running that formular
         if os2_webform_id != "tilmelding_til_modersmaalsunderv":
             # We start by fetching the list of existing Excel files in Sharepoint
-            files_in_sharepoint = sharepoint_api.fetch_files_list(folder_name=folder_name)
+            files_in_sharepoint = sharepoint_api.fetch_files_list(
+                folder_name=folder_name
+            )
             file_names = [f["Name"] for f in files_in_sharepoint]
 
-            print("STEP 2 - Checking if Excel file already exists in Sharepoint folder.")
+            print(
+                "STEP 2 - Checking if Excel file already exists in Sharepoint folder."
+            )
             # If the Excel file does not exist, we create it with all existing submissions
             if excel_file_name not in file_names:
                 print(f"Excel file '{excel_file_name}' not found - creating new.")
 
-                all_submissions_df = helper_functions.build_df(all_submissions, formular_mapping)
+                all_submissions_df = helper_functions.build_df(
+                    all_submissions, formular_mapping
+                )
 
                 excel_stream = BytesIO()
-                all_submissions_df.to_excel(excel_stream, index=False, engine="openpyxl", sheet_name=SHEET_NAME)
+                all_submissions_df.to_excel(
+                    excel_stream, index=False, engine="openpyxl", sheet_name=SHEET_NAME
+                )
                 excel_stream.seek(0)
 
                 sharepoint_api.upload_file_from_bytes(
                     binary_content=excel_stream.getvalue(),
                     file_name=excel_file_name,
-                    folder_name=folder_name
+                    folder_name=folder_name,
                 )
 
                 sharepoint_api.format_and_sort_excel_file(
@@ -203,7 +217,7 @@ async def populate_queue(workqueue: Workqueue):
                     italic_rows=None,
                     font_config=None,
                     column_widths=100,
-                    freeze_panes="A2"
+                    freeze_panes="A2",
                 )
 
                 # We continue to the next form as there is no need to add existing submissions to the workqueue, as they are already in the Excel file
@@ -211,16 +225,22 @@ async def populate_queue(workqueue: Workqueue):
 
             # If the Excel file does exist, we fetch it and load it into a DataFrame, so we can compare serial numbers
             print("STEP 3 - Retrieving existing Excel sheet.")
-            excel_file = sharepoint_api.fetch_file_using_open_binary(excel_file_name, folder_name)
+            excel_file = sharepoint_api.fetch_file_using_open_binary(
+                excel_file_name, folder_name
+            )
             excel_stream = BytesIO(excel_file)
             excel_file_df = pd.read_excel(io=excel_stream, sheet_name=SHEET_NAME)
 
             # Create a set of serial numbers from the Excel file
             serial_set = set(excel_file_df["Serial number"].tolist())
-            print(f"Excel file retrieved. {len(excel_file_df)} rows found in existing sheet.")
+            print(
+                f"Excel file retrieved. {len(excel_file_df)} rows found in existing sheet."
+            )
 
             # Loop through all active submissions and transform them to the correct format
-            print("STEP 4 - Looping submissions and mapping retrieved data to fit Excel column names.")
+            print(
+                "STEP 4 - Looping submissions and mapping retrieved data to fit Excel column names."
+            )
             for form in all_submissions:
                 form_serial_number = form["entity"]["serial"][0]["value"]
 
@@ -228,7 +248,9 @@ async def populate_queue(workqueue: Workqueue):
                 if form_serial_number in serial_set:
                     continue
 
-                transformed_row = helper_functions.transform_form_submission(form_serial_number, form, formular_mapping)
+                transformed_row = helper_functions.transform_form_submission(
+                    form_serial_number, form, formular_mapping
+                )
 
                 new_submissions.append(transformed_row)
 
@@ -236,20 +258,26 @@ async def populate_queue(workqueue: Workqueue):
                     "site_name": site_name,
                     "folder_name": folder_name,
                     "excel_file_name": excel_file_name,
-                    "data": new_submissions
+                    "data": new_submissions,
                 }
 
-                if "upload_pdfs_to_sharepoint_folder_name" in config and upload_pdfs_to_sharepoint_folder_name != "":
-                    work_item_data["upload_pdfs_to_sharepoint_folder_name"] = upload_pdfs_to_sharepoint_folder_name
-                    work_item_data["pdf_url"] = form["data"]["attachments"]["besvarelse_i_pdf_format"]["url"]
+                if (
+                    "upload_pdfs_to_sharepoint_folder_name" in config
+                    and upload_pdfs_to_sharepoint_folder_name != ""
+                ):
+                    work_item_data["upload_pdfs_to_sharepoint_folder_name"] = (
+                        upload_pdfs_to_sharepoint_folder_name
+                    )
+                    work_item_data["pdf_url"] = form["data"]["attachments"][
+                        "besvarelse_i_pdf_format"
+                    ]["url"]
 
                 print("STEP 5 - Adding new submission to workqueue.")
-                workqueue.add_item(
-                    reference=os2_webform_id,
-                    data=work_item_data
-                )
+                workqueue.add_item(reference=os2_webform_id, data=work_item_data)
 
-                print(f"Added submissions for webform, {os2_webform_id}, to workqueue.\n")
+                print(
+                    f"Added submissions for webform, {os2_webform_id}, to workqueue.\n"
+                )
 
 
 async def process_workqueue(workqueue: Workqueue):
@@ -269,7 +297,9 @@ async def process_workqueue(workqueue: Workqueue):
         excel_file_name = data.get("excel_file_name")
         form_data = data.get("data")
 
-        upload_pdfs_to_sharepoint_folder_name = data.get("upload_pdfs_to_sharepoint_folder_name", "")
+        upload_pdfs_to_sharepoint_folder_name = data.get(
+            "upload_pdfs_to_sharepoint_folder_name", ""
+        )
 
         file_url = data.get("pdf_url", "")
 
@@ -280,7 +310,13 @@ async def process_workqueue(workqueue: Workqueue):
             folder_name = "Automation_Server"
             upload_pdfs_to_sharepoint_folder_name = "Automation_Server/pdf"
 
-        sharepoint_api = Sharepoint(username=USERNAME, password=PASSWORD, site_url=SHAREPOINT_FOLDER_URL, site_name=site_name, document_library=SHAREPOINT_DOCUMENT_LIBRARY)
+        sharepoint_api = Sharepoint(
+            username=USERNAME,
+            password=PASSWORD,
+            site_url=SHAREPOINT_FOLDER_URL,
+            site_name=site_name,
+            document_library=SHAREPOINT_DOCUMENT_LIBRARY,
+        )
 
         with item:
             try:
@@ -291,7 +327,7 @@ async def process_workqueue(workqueue: Workqueue):
                     folder_name=folder_name,
                     excel_file_name=excel_file_name,
                     sheet_name=SHEET_NAME,
-                    new_rows=form_data
+                    new_rows=form_data,
                 )
 
                 if upload_pdfs_to_sharepoint_folder_name != "":
@@ -321,10 +357,11 @@ async def process_workqueue(workqueue: Workqueue):
             italic_rows=None,
             font_config=None,
             column_widths=100,
-            freeze_panes="A2"
+            freeze_panes="A2",
         )
 
         print()
+
 
 if __name__ == "__main__":
     ats = AutomationServer.from_environment()

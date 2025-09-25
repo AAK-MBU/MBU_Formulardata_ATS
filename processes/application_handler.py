@@ -1,6 +1,5 @@
 """Module for handling application startup, and close"""
 
-
 import logging
 
 

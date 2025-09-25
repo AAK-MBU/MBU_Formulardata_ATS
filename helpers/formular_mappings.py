@@ -13,14 +13,14 @@ basisteam_spoergeskema_til_fagpe_mapping = {
     "skole_privat": "Skole/institution",
     "barnets_navn": "Barnets navn",
     "spoergsmaal_fagperson_tabel": {
-        "spg_fagperson_1": 'Forløbet hjalp barnet',
-        "spg_fagperson_2": 'Forløbet hjalp os på skolen/institutionen',
-        "spg_fagperson_3": 'Hvis et andet barn havde brug for denne form for hjælp, ville jeg anbefale Basisteam',
-        "spg_fagperson_4": 'Jeg følte mig passende informeret om meningen, formålet og forløbet',
-        "spg_fagperson_5": 'Under forløbet blev vi på skolen/institutionen rustet til at håndtere elevens problemer på en positiv måde',
-        "spg_fagperson_6": 'Under forløbet opnåede jeg en bedre forståelse af barnets psykiske tilstand',
-        "spg_fagperson_7": 'Jeg havde tillid til Basisteam',
-        "spg_fagperson_9": 'Sparringsmøderne med Basisteam var brugbare',
+        "spg_fagperson_1": "Forløbet hjalp barnet",
+        "spg_fagperson_2": "Forløbet hjalp os på skolen/institutionen",
+        "spg_fagperson_3": "Hvis et andet barn havde brug for denne form for hjælp, ville jeg anbefale Basisteam",
+        "spg_fagperson_4": "Jeg følte mig passende informeret om meningen, formålet og forløbet",
+        "spg_fagperson_5": "Under forløbet blev vi på skolen/institutionen rustet til at håndtere elevens problemer på en positiv måde",
+        "spg_fagperson_6": "Under forløbet opnåede jeg en bedre forståelse af barnets psykiske tilstand",
+        "spg_fagperson_7": "Jeg havde tillid til Basisteam",
+        "spg_fagperson_9": "Sparringsmøderne med Basisteam var brugbare",
     },
     "hvad_var_rigtig_godt_ved_forloebet": "Hvad var rigtig godt ved Basisteam?",
     "var_der_noget_du_ikke_syntes_om_eller_noget_der_kan_forbedres": "Var der noget, du ikke synes om eller noget, der kan forbedres?",
@@ -40,14 +40,14 @@ basisteam_spoergeskema_til_forae_mapping = {
     "barnets_navn_manuelt": "Barnets navn manuelt",
     "cpr_nummr_barnet_manuelt": "Barnets CPR-nummer manuelt",
     "spoergsmaal_foraelder_tabel": {
-        "spg_foraelder_1": 'Forløbet hjalp mit barn',
-        "spg_foraelder_2": 'Forløbet hjalp mig',
-        "spg_foraelder_3": 'Hvis en ven havde brug for denne form for hjælp, ville jeg anbefale vedkommende forløbet',
-        "spg_foraelder_4": 'Jeg følte mig passende informeret om meningen, formålet og forløbet',
-        "spg_foraelder_5": 'Vi har det bedre i familien nu, end før forløbet begyndte',
-        "spg_foraelder_6": 'Under forløbet blev jeg i stand til at forandre min adfærd over for mit barn på en positiv måde',
-        "spg_foraelder_7": 'Under forløbet opnåede jeg en bedre forståelse af mit barns psykiske tilstand',
-        "spg_foraelder_8": 'Jeg havde tillid til Basisteam',
+        "spg_foraelder_1": "Forløbet hjalp mit barn",
+        "spg_foraelder_2": "Forløbet hjalp mig",
+        "spg_foraelder_3": "Hvis en ven havde brug for denne form for hjælp, ville jeg anbefale vedkommende forløbet",
+        "spg_foraelder_4": "Jeg følte mig passende informeret om meningen, formålet og forløbet",
+        "spg_foraelder_5": "Vi har det bedre i familien nu, end før forløbet begyndte",
+        "spg_foraelder_6": "Under forløbet blev jeg i stand til at forandre min adfærd over for mit barn på en positiv måde",
+        "spg_foraelder_7": "Under forløbet opnåede jeg en bedre forståelse af mit barns psykiske tilstand",
+        "spg_foraelder_8": "Jeg havde tillid til Basisteam",
     },
     "hvad_var_rigtig_godt_ved_forloebet": "Hvad var rigtig godt ved forløbet?",
     "var_der_noget_du_ikke_syntes_om_eller_noget_der_kan_forbedres": "Var der noget, du ikke synes om eller noget, der kan forbedres?",
@@ -79,7 +79,7 @@ henvisningsskema_til_klinisk_hyp_mapping = {
     "uddyb_her_sygehus": "Uddyb her - Sygehus",
     "uddyb_her_andet": "Uddyb her - Andet",
     "skolefravaer_den_seneste_maaned": "Skolefravær den seneste måned",
-    "hvad_er_oensket_maal_for_forventning_til_effekt_af_hypnoterapi_": "Hvad er det ønskede konkrete mål for hypnoterapi"
+    "hvad_er_oensket_maal_for_forventning_til_effekt_af_hypnoterapi_": "Hvad er det ønskede konkrete mål for hypnoterapi",
 }
 
 spoergeskema_hypnoterapi_foer_fo_mapping = {
@@ -107,7 +107,7 @@ spoergeskema_hypnoterapi_foer_fo_mapping = {
     "hvad_kan_goere_problemet_vaerre_": "Hvad kan gøre problemet værre?",
     "hvad_kan_goere_problemet_bedre_": "Hvad kan gøre problemet bedre?",
     "beskriv_gerne_hvilke_problemer": "Er der andet, der fylder for dig?",
-    'her_er_en_linke_med_prikker_fra_0_til_10_prik_0_betyder_det_vaer': 'Her er en linje med prikker fra 0 til 10. Prik 0 betyder "det værst mulige liv" for dig, og prik 10 betyder "det bedst mulige liv" for dig. Hvor på linjen synes du selv, du er for tiden?'
+    "her_er_en_linke_med_prikker_fra_0_til_10_prik_0_betyder_det_vaer": 'Her er en linje med prikker fra 0 til 10. Prik 0 betyder "det værst mulige liv" for dig, og prik 10 betyder "det bedst mulige liv" for dig. Hvor på linjen synes du selv, du er for tiden?',
 }
 
 opfoelgende_spoergeskema_hypnote_mapping = {

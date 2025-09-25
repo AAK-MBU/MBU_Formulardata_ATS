@@ -11,12 +11,21 @@ import mimetypes
 @dataclass
 class EmailAttachment:
     """A simple dataclass representing an email attachment."""
+
     file: BytesIO
     file_name: str
 
 
-def send_email(receiver: str | list[str], sender: str, subject: str, body: str, smtp_server: str, smtp_port: int,
-               html_body: bool = False, attachments: Sequence[EmailAttachment] | None = None) -> None:
+def send_email(
+    receiver: str | list[str],
+    sender: str,
+    subject: str,
+    body: str,
+    smtp_server: str,
+    smtp_port: int,
+    html_body: bool = False,
+    attachments: Sequence[EmailAttachment] | None = None,
+) -> None:
     """Send an email using the SMTP protocol.
 
     Args:
@@ -31,14 +40,14 @@ def send_email(receiver: str | list[str], sender: str, subject: str, body: str, 
     """
 
     msg = EmailMessage()
-    msg['to'] = receiver
-    msg['from'] = sender
-    msg['subject'] = subject
+    msg["to"] = receiver
+    msg["from"] = sender
+    msg["subject"] = subject
 
     # Set body
     if html_body:
         msg.set_content("Please enable HTML to view this message.")
-        msg.add_alternative(body, subtype='html')
+        msg.add_alternative(body, subtype="html")
     else:
         msg.set_content(body)
 
@@ -48,7 +57,12 @@ def send_email(receiver: str | list[str], sender: str, subject: str, body: str, 
             mime = mimetypes.guess_type(attachment.file_name)[0]
             main, sub = mime.split("/") if mime else ("application", "octet-stream")
             attachment.file.seek(0)
-            msg.add_attachment(attachment.file.read(), maintype=main, subtype=sub, filename=attachment.file_name)
+            msg.add_attachment(
+                attachment.file.read(),
+                maintype=main,
+                subtype=sub,
+                filename=attachment.file_name,
+            )
 
     # Send message
     with smtplib.SMTP(smtp_server, smtp_port) as smtp:

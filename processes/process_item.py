@@ -34,16 +34,20 @@ def process_item(item_data: dict, sharepoint_api: Sharepoint, os2_api_key: str):
     if not excel_file_exists:
         print(f"Excel file '{config['excel_file_name']}' not found - creating new.")
 
-        all_submissions_df = helper_functions.build_df(new_submissions, config["formular_mapping"])
+        all_submissions_df = helper_functions.build_df(
+            new_submissions, config["formular_mapping"]
+        )
 
         excel_stream = BytesIO()
-        all_submissions_df.to_excel(excel_stream, index=False, engine="openpyxl", sheet_name=SHEET_NAME)
+        all_submissions_df.to_excel(
+            excel_stream, index=False, engine="openpyxl", sheet_name=SHEET_NAME
+        )
         excel_stream.seek(0)
 
         sharepoint_api.upload_file_from_bytes(
             binary_content=excel_stream.getvalue(),
             file_name=excel_file_name,
-            folder_name=folder_name
+            folder_name=folder_name,
         )
 
         sharepoint_api.format_and_sort_excel_file(
@@ -57,11 +61,9 @@ def process_item(item_data: dict, sharepoint_api: Sharepoint, os2_api_key: str):
             italic_rows=None,
             font_config=None,
             column_widths=100,
-            freeze_panes="A2"
+            freeze_panes="A2",
         )
 
         return
-    
-
 
     return

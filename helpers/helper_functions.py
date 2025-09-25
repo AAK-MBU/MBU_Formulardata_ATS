@@ -1,4 +1,4 @@
-""" Script to upload fetch an OS2-formular submission and upload it in pdf format to Sharepoint. """
+"""Script to upload fetch an OS2-formular submission and upload it in pdf format to Sharepoint."""
 
 import json
 
@@ -44,7 +44,6 @@ def transform_form_submission(form_serial_number, form: dict, mapping: dict) -> 
                     value = value.replace("\r\n", ". ").replace("\n", ". ")
 
                     if value.startswith("[") and value.endswith("]"):
-
                         try:
                             parsed = ast.literal_eval(value)
 
@@ -52,7 +51,12 @@ def transform_form_submission(form_serial_number, form: dict, mapping: dict) -> 
                                 value = ", ".join(str(item) for item in parsed)
 
                         except Exception:
-                            value = value.strip("[]").replace("'", "").replace('"', "").strip()
+                            value = (
+                                value.strip("[]")
+                                .replace("'", "")
+                                .replace('"', "")
+                                .strip()
+                            )
 
                 transformed[nested_target_column] = value
 
@@ -73,7 +77,9 @@ def transform_form_submission(form_serial_number, form: dict, mapping: dict) -> 
                             value = ", ".join(str(item) for item in parsed)
 
                     except Exception:
-                        value = value.strip("[]").replace("'", "").replace('"', "").strip()
+                        value = (
+                            value.strip("[]").replace("'", "").replace('"', "").strip()
+                        )
 
             transformed[target] = value
 
@@ -112,9 +118,7 @@ def get_workqueue_items(url, token, workqueue_id):
     if not url or not token:
         raise EnvironmentError("ATS_URL or ATS_TOKEN is not set in the environment")
 
-    headers = {
-        "Authorization": f"Bearer {token}"
-    }
+    headers = {"Authorization": f"Bearer {token}"}
 
     full_url = f"{url}/workqueues/{workqueue_id}/items"
 
@@ -191,7 +195,6 @@ def build_df(submissions, mapping):
     rows = []
 
     for submission in submissions:
-
         serial = submission["entity"]["serial"][0]["value"]
 
         rows.append(transform_form_submission(serial, submission, mapping))
@@ -218,7 +221,7 @@ def upload_pdf_to_sharepoint(
         existing_pdf_names = set()
 
     path = urlparse(file_url).path
-    filename = path.split('/')[-1]
+    filename = path.split("/")[-1]
     final_filename = f"{unquote(filename)}"
 
     print(file_url)
@@ -240,7 +243,7 @@ def upload_pdf_to_sharepoint(
     sharepoint_api.upload_file_from_bytes(
         binary_content=downloaded_file,
         file_name=final_filename,
-        folder_name=folder_name
+        folder_name=folder_name,
     )
 
 
@@ -259,12 +262,9 @@ def download_file_bytes(url: str, os2_api_key: str) -> bytes:
     requests.RequestException: If the HTTP request fails for any reason.
     """
 
-    headers = {
-        'Content-Type': 'application/json',
-        'api-key': f'{os2_api_key}'
-    }
+    headers = {"Content-Type": "application/json", "api-key": f"{os2_api_key}"}
 
-    response = requests.request(method='GET', url=url, headers=headers, timeout=60)
+    response = requests.request(method="GET", url=url, headers=headers, timeout=60)
 
     response.raise_for_status()
 
