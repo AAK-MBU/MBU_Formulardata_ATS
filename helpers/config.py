@@ -35,12 +35,12 @@ WEBFORMS_CONFIG = {
         "site_name": "tea-teamsite8906",
         "upload_pdfs_to_sharepoint_folder_name": "General/Evaluering/Besvarelser fra OS2Forms - forældre",
     },
-    # "spoergeskema_hypnoterapi_foer_fo": {
-    #     "excel_file_name": "Dataudtræk spørgeskema hypnoterapi.xlsx",
-    #     "folder_name": "General/Udtræk OS2Forms/Spørgeskema",
-    #     "formular_mapping": formular_mappings.spoergeskema_hypnoterapi_foer_fo_mapping,
-    #     "site_name": "tea-teamsite10693",
-    # },
+    "spoergeskema_hypnoterapi_foer_fo": {
+        "excel_file_name": "Dataudtræk spørgeskema hypnoterapi.xlsx",
+        "folder_name": "General/Udtræk OS2Forms/Spørgeskema",
+        "formular_mapping": formular_mappings.spoergeskema_hypnoterapi_foer_fo_mapping,
+        "site_name": "tea-teamsite10693",
+    },
     # "opfoelgende_spoergeskema_hypnote": {
     #     "excel_file_name": "Dataudtræk opfølgende spørgeskema hypnoterapi.xlsx",
     #     "folder_name": "General/Udtræk OS2Forms/Opfølgende spørgeskema",
