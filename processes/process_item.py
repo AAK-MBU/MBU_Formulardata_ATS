@@ -64,8 +64,17 @@ def process_item(item_data: dict, sharepoint_kwargs: dict):
 
         all_submissions_df = pd.DataFrame(new_submissions)
 
+        # 🔑 Force column order according to formular_mapping
+        column_order = list(formular_mapping.values())
+        all_submissions_df = all_submissions_df.reindex(columns=column_order)
+
         excel_stream = BytesIO()
-        all_submissions_df.to_excel(excel_stream, index=False, engine="openpyxl", sheet_name=SHEET_NAME)
+        all_submissions_df.to_excel(
+            excel_stream,
+            index=False,
+            engine="openpyxl",
+            sheet_name=SHEET_NAME
+        )
         excel_stream.seek(0)
 
         try:
@@ -74,12 +83,12 @@ def process_item(item_data: dict, sharepoint_kwargs: dict):
                 file_name=excel_file_name,
                 folder_name=folder_name,
             )
-
         except Exception as e:
             logger.info(f"Error when trying to upload excel file to SharePoint: {e}")
 
     elif excel_file_exists:
         logger.info(f"Excel file '{excel_file_name}' already exists - appending new rows.")
+
         try:
             sharepoint_api.append_row_to_sharepoint_excel(
                 folder_name=folder_name,
