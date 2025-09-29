@@ -1,5 +1,6 @@
 """Module to hande queue population"""
 
+import sys
 import os
 import asyncio
 import logging
@@ -33,118 +34,130 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
     Function to populate the workqueue with items.
     """
 
+    new_submissions = []
     queue_items = []
 
     db_conn_string = os.getenv("DBCONNECTIONSTRINGPROD")
 
-    for os2_webform_id, original_config in WEBFORMS_CONFIG.items():
-        form_config = original_config.copy()
-        if not form_config:
-            continue
+    os2_webform_id = next(
+        (key for key in WEBFORMS_CONFIG if f"--{key}" in sys.argv or key in sys.argv),
+        None
+    )
 
-        ### FOR DEV TESTING ONLY - OVERRIDE SITE AND FOLDER NAME TO AVOID POLLUTING ACTUAL FOLDERS ###
-        # testing = True
-        # if testing:
-        #     form_config["site_name"] = "MBURPA"
-        #     form_config["folder_name"] = "Automation_Server"
-        #     if "upload_pdfs_to_sharepoint_folder_name" in form_config:
-        #         form_config["upload_pdfs_to_sharepoint_folder_name"] = "Automation_Server/pdf"
-        ### FOR DEV TESTING ONLY - OVERRIDE SITE AND FOLDER NAME TO AVOID POLLUTING ACTUAL FOLDERS ###
+    if not os2_webform_id:
+        raise ValueError("No matching form key found in sys.argv")
 
-        new_submissions = []
+    form_config = WEBFORMS_CONFIG[os2_webform_id].copy()
 
-        site_name = form_config["site_name"]
-        folder_name = form_config["folder_name"]
-        excel_file_name = form_config["excel_file_name"]
+    logger.info(f"Webform_id: {os2_webform_id}")
 
-        formular_mapping = form_config["formular_mapping"]
-        del form_config["formular_mapping"]
+    ### FOR DEV TESTING ONLY - OVERRIDE SITE AND FOLDER NAME TO AVOID POLLUTING ACTUAL FOLDERS ###
+    # testing = True
+    # if testing:
+    #     form_config["site_name"] = "MBURPA"
+    #     form_config["folder_name"] = "Automation_Server"
+    #     if "upload_pdfs_to_sharepoint_folder_name" in form_config:
+    #         form_config["upload_pdfs_to_sharepoint_folder_name"] = "Automation_Server/pdf"
+    ### FOR DEV TESTING ONLY - OVERRIDE SITE AND FOLDER NAME TO AVOID POLLUTING ACTUAL FOLDERS ###
 
-        upload_pdfs_to_sharepoint_folder_name = form_config.get("upload_pdfs_to_sharepoint_folder_name", "")
+    site_name = form_config["site_name"]
+    folder_name = form_config["folder_name"]
+    excel_file_name = form_config["excel_file_name"]
 
-        form_config["excel_file_exists"] = False
+    formular_mapping = form_config["formular_mapping"]
+    del form_config["formular_mapping"]
 
-        try:
-            sharepoint_api = Sharepoint(
-                tenant=sharepoint_kwargs["tenant"],
-                client_id=sharepoint_kwargs["client_id"],
-                thumbprint=sharepoint_kwargs["thumbprint"],
-                cert_path=sharepoint_kwargs["cert_path"],
-                site_url=SHAREPOINT_SITE_URL,
-                site_name=site_name,
-                document_library=SHAREPOINT_DOCUMENT_LIBRARY,
-            )
+    upload_pdfs_to_sharepoint_folder_name = form_config.get("upload_pdfs_to_sharepoint_folder_name", "")
 
-        except Exception as e:
-            logger.info(f"Error when trying to authenticate: {e}")
+    form_config["excel_file_exists"] = False
 
-        logger.info(f"Looping through submissions for webform_id: {os2_webform_id}")
-
-        logger.info("STEP 1 - Fetching all active submissions.")
-        all_submissions = helper_functions.get_forms_data(
-            conn_string=db_conn_string,
-            form_type=os2_webform_id,
+    try:
+        sharepoint_api = Sharepoint(
+            tenant=sharepoint_kwargs["tenant"],
+            client_id=sharepoint_kwargs["client_id"],
+            thumbprint=sharepoint_kwargs["thumbprint"],
+            cert_path=sharepoint_kwargs["cert_path"],
+            site_url=SHAREPOINT_SITE_URL,
+            site_name=site_name,
+            document_library=SHAREPOINT_DOCUMENT_LIBRARY,
         )
 
-        logger.info(f"OS2 submissions retrieved. {len(all_submissions)} total submissions found.")
+    except Exception as e:
+        logger.info(f"Error when trying to authenticate: {e}.")
 
-        serial_set = set()
+    logger.info("STEP 1 - Fetching all submissions.")
+    all_submissions = helper_functions.get_forms_data(
+        conn_string=db_conn_string,
+        form_type=os2_webform_id,
+    )
 
-        try:
-            files_in_sharepoint = sharepoint_api.fetch_files_list(folder_name=folder_name)
-            file_names = [f["Name"] for f in files_in_sharepoint]
+    logger.info(f"OS2 submissions retrieved. {len(all_submissions)} total submissions found.")
 
-        except Exception as e:
-            logger.info(f"Error when trying to fetch existing files in SharePoint: {e}")
+    if len(all_submissions) == 0:
+        logger.info(f"There are no submissions for webform: {os2_webform_id}.")
 
-        if excel_file_name in file_names:
-            form_config["excel_file_exists"] = True
+        return queue_items
 
-            # If the Excel file exists, we fetch it and load it into a DataFrame, so we can compare serial numbers
-            logger.info("STEP 3 - Retrieving existing Excel sheet.")
-            excel_file = sharepoint_api.fetch_file_using_open_binary(
-                excel_file_name,
-                folder_name
-            )
+    serial_set = set()
 
-            excel_stream = BytesIO(excel_file)
-            excel_file_df = pd.read_excel(io=excel_stream, sheet_name="Besvarelser")
+    logger.info("STEP 2 - Looking for existing excel file.")
+    try:
+        files_in_sharepoint = sharepoint_api.fetch_files_list(folder_name=folder_name)
+        file_names = [f["Name"] for f in files_in_sharepoint]
 
-            # Create a set of serial numbers from the Excel file
-            serial_set = set(excel_file_df["Serial number"].tolist())
-            logger.info(f"Excel file retrieved. {len(excel_file_df)} rows found in existing sheet.")
+    except Exception as e:
+        logger.info(f"Error when trying to fetch existing files in SharePoint: {e}.")
 
-        # Loop through all active submissions and transform them to the correct format
-        logger.info("STEP 4 - Looping submissions and mapping retrieved data to fit Excel column names.")
-        for form in all_submissions:
-            form_serial_number = form["entity"]["serial"][0]["value"]
+    if excel_file_name in file_names:
+        form_config["excel_file_exists"] = True
 
-            # If the form's serial number is already in the Excel file, skip it
-            if form_serial_number in serial_set:
-                continue
+        # If the Excel file exists, we fetch it and load it into a DataFrame, so we can compare serial numbers
+        excel_file = sharepoint_api.fetch_file_using_open_binary(
+            excel_file_name,
+            folder_name
+        )
 
-            transformed_row = helper_functions.transform_form_submission(
-                form_serial_number,
-                form,
-                formular_mapping
-            )
+        excel_stream = BytesIO(excel_file)
+        excel_file_df = pd.read_excel(io=excel_stream, sheet_name="Besvarelser")
 
-            if upload_pdfs_to_sharepoint_folder_name:
-                form_config["upload_pdfs_to_sharepoint_folder_name"] = upload_pdfs_to_sharepoint_folder_name
-                form_config["file_url"] = form["data"]["attachments"]["besvarelse_i_pdf_format"]["url"]
+        # Create a set of serial numbers from the Excel file
+        serial_set = set(excel_file_df["Serial number"].tolist())
+        logger.info(f"Excel file already exists - {len(excel_file_df)} rows found in existing sheet.")
 
-            new_submissions.append(transformed_row)
+    # Loop through all active submissions and transform them to the correct format
+    logger.info("STEP 3 - Looping submissions and identifying new ones to append.")
+    for form in all_submissions:
+        form_serial_number = form["entity"]["serial"][0]["value"]
 
+        # If the form's serial number is already in the Excel file, skip it
+        if form_serial_number in serial_set:
+            continue
+
+        transformed_row = helper_functions.transform_form_submission(
+            form_serial_number,
+            form,
+            formular_mapping
+        )
+
+        if upload_pdfs_to_sharepoint_folder_name:
+            form_config["upload_pdfs_to_sharepoint_folder_name"] = upload_pdfs_to_sharepoint_folder_name
+            form_config["file_url"] = form["data"]["attachments"]["besvarelse_i_pdf_format"]["url"]
+
+        new_submissions.append(transformed_row)
+
+    if len(new_submissions) > 0:
+        logger.info(f"New submissions found: {len(new_submissions)}.")
+
+        logger.info("STEP 4 - Appending work_item with new submissions to workqueue.")
         work_item_data = {
             "reference": f"{os2_webform_id}_{TODAYS_DATE}",
             "data": {"config": form_config, "submissions": new_submissions},
         }
 
-        if len(new_submissions) > 0:
-            queue_items.append(work_item_data)
+        queue_items.append(work_item_data)
 
-        print()
-        print()
+    else:
+        logger.info("No new submissions found.")
 
     return queue_items
 
