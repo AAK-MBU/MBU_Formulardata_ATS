@@ -33,18 +33,12 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
     Function to populate the workqueue with items.
     """
 
-    ### STUFF FOR MODERSMAALSUNDERVISNING ###
-    # today = datetime.date.today()
-    # # today = datetime.date(2025, 5, 26)
-    # monday_last_week = today - datetime.timedelta(days=today.weekday() + 7)
-    # sunday_last_week = monday_last_week + datetime.timedelta(days=6)
-    ### STUFF FOR MODERSMAALSUNDERVISNING ###
-
     queue_items = []
 
     db_conn_string = os.getenv("DBCONNECTIONSTRINGPROD")
 
-    for os2_webform_id, form_config in WEBFORMS_CONFIG.items():
+    for os2_webform_id, original_config in WEBFORMS_CONFIG.items():
+        form_config = original_config.copy()
         if not form_config:
             continue
 

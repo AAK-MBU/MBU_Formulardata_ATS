@@ -65,10 +65,4 @@ WEBFORMS_CONFIG = {
         "formular_mapping": formular_mappings.sundung_aarhus_mapping,
         "site_name": "tea-teamsite11121",
     },
-    # "tilmelding_til_modersmaalsunderv": {
-    #     "excel_file_name": f"Dataudtræk - {monday_last_week} til {sunday_last_week}.xlsx",
-    #     "folder_name": "General",
-    #     "formular_mapping": formular_mappings.tilmelding_til_modersmaalsunderv_mapping,
-    #     "site_name": "Teams-Modersmlsundervisning",
-    # },
 }
