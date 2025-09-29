@@ -9,15 +9,13 @@ import ast
 
 from datetime import datetime
 
-from collections import OrderedDict
-
 import requests
 
 import pandas as pd
 
 from sqlalchemy import create_engine
 
-from mbu_dev_shared_components.msoffice365.sharepoint_api.files import Sharepoint
+from mbu_msoffice_integration.sharepoint_class import Sharepoint
 
 
 def transform_form_submission(form_serial_number: str, form: dict, mapping: dict) -> dict:
