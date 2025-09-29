@@ -62,7 +62,10 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
         site_name = form_config["site_name"]
         folder_name = form_config["folder_name"]
         excel_file_name = form_config["excel_file_name"]
-        formular_mapping = form_config["formular_mapping"]
+
+        if "formular_mapping" in form_config:
+            formular_mapping = form_config["formular_mapping"]
+            del form_config["formular_mapping"]
 
         upload_pdfs_to_sharepoint_folder_name = form_config.get("upload_pdfs_to_sharepoint_folder_name", "")
 
@@ -132,9 +135,6 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
                 form,
                 formular_mapping
             )
-
-            if "formular_mapping" in form_config:
-                del form_config["formular_mapping"]
 
             if upload_pdfs_to_sharepoint_folder_name:
                 form_config["upload_pdfs_to_sharepoint_folder_name"] = upload_pdfs_to_sharepoint_folder_name
