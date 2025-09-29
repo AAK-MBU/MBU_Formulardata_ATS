@@ -83,30 +83,30 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
         )
 
     except Exception as e:
-        logger.info(f"Error when trying to authenticate: {e}.")
+        logger.info(f"Error when trying to authenticate: {e}")
 
-    logger.info("STEP 1 - Fetching all submissions.")
+    logger.info("STEP 1 - Fetching all submissions")
     all_submissions = helper_functions.get_forms_data(
         conn_string=db_conn_string,
         form_type=os2_webform_id,
     )
 
-    logger.info(f"OS2 submissions retrieved. {len(all_submissions)} total submissions found.")
+    logger.info(f"OS2 submissions retrieved - {len(all_submissions)} total submissions found")
 
     if len(all_submissions) == 0:
-        logger.info(f"There are no submissions for webform: {os2_webform_id}.")
+        logger.info(f"There are no submissions for webform - {os2_webform_id}")
 
         return queue_items
 
     serial_set = set()
 
-    logger.info("STEP 2 - Looking for existing excel file.")
+    logger.info("STEP 2 - Looking for existing excel file")
     try:
         files_in_sharepoint = sharepoint_api.fetch_files_list(folder_name=folder_name)
         file_names = [f["Name"] for f in files_in_sharepoint]
 
     except Exception as e:
-        logger.info(f"Error when trying to fetch existing files in SharePoint: {e}.")
+        logger.info(f"Error when trying to fetch existing files in SharePoint: {e}")
 
     if excel_file_name in file_names:
         form_config["excel_file_exists"] = True
@@ -122,10 +122,10 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
 
         # Create a set of serial numbers from the Excel file
         serial_set = set(excel_file_df["Serial number"].tolist())
-        logger.info(f"Excel file already exists - {len(excel_file_df)} rows found in existing sheet.")
+        logger.info(f"Excel file already exists - {len(excel_file_df)} rows found in existing sheet")
 
     # Loop through all active submissions and transform them to the correct format
-    logger.info("STEP 3 - Looping submissions and identifying new ones to append.")
+    logger.info("STEP 3 - Looping submissions and identifying new ones to append")
     for form in all_submissions:
         form_serial_number = form["entity"]["serial"][0]["value"]
 
@@ -148,7 +148,7 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
     if len(new_submissions) > 0:
         logger.info(f"New submissions found: {len(new_submissions)}.")
 
-        logger.info("STEP 4 - Appending work_item with new submissions to workqueue.")
+        logger.info("STEP 4 - Appending work_item with new submissions to workqueue")
         work_item_data = {
             "reference": f"{os2_webform_id}_{TODAYS_DATE}",
             "data": {"config": form_config, "submissions": new_submissions},

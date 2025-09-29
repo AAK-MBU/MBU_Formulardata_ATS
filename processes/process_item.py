@@ -62,7 +62,7 @@ def process_item(item_data: dict, sharepoint_kwargs: dict):
 
     # If the Excel file does not exist, we create it with all existing submissions
     if not excel_file_exists:
-        logger.info(f"Excel file '{excel_file_name}' not found - creating new.")
+        logger.info(f"Excel file '{excel_file_name}' not found - creating new")
 
         # Force column order according to formular_mapping
         column_order = list(formular_mapping.values())
@@ -97,7 +97,7 @@ def process_item(item_data: dict, sharepoint_kwargs: dict):
             logger.info(f"Error when trying to upload excel file to SharePoint: {e}")
 
     elif excel_file_exists:
-        logger.info(f"Excel file '{excel_file_name}' already exists - appending new rows.")
+        logger.info(f"Excel file '{excel_file_name}' already exists - appending new rows")
 
         try:
             sharepoint_api.append_row_to_sharepoint_excel(
@@ -130,7 +130,7 @@ def process_item(item_data: dict, sharepoint_kwargs: dict):
         logger.info(f"Error when trying format and sort excel file: {e}")
 
     if upload_pdfs_to_sharepoint_folder_name != "":
-        logger.info("Uploading PDFs to SharePoint.")
+        logger.info("Uploading PDFs to SharePoint")
 
         helper_functions.upload_pdf_to_sharepoint(
             sharepoint_api=sharepoint_api,
