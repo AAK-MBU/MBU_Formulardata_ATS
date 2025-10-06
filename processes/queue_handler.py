@@ -5,6 +5,7 @@ import os
 import asyncio
 import logging
 import json
+import copy
 
 from automation_server_client import Workqueue
 
@@ -48,6 +49,7 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
         raise ValueError("No matching form key found in sys.argv")
 
     form_config = WEBFORMS_CONFIG[os2_webform_id].copy()
+    form_config = copy.deepcopy(WEBFORMS_CONFIG[os2_webform_id])
 
     logger.info(f"Webform_id: {os2_webform_id}")
 
