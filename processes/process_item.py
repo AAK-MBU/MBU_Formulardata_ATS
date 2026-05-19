@@ -39,7 +39,9 @@ def process_item(item_data: dict, sharepoint_kwargs: dict):
     excel_file_name = config["excel_file_name"]
     excel_file_exists = config.get("excel_file_exists", False)
 
-    formular_mapping = WEBFORMS_CONFIG["henvisningsskema_til_klinisk_hyp"]["formular_mapping"]
+    os2_webform_id = config.get("os2_webform_id")
+
+    formular_mapping = WEBFORMS_CONFIG[os2_webform_id]["formular_mapping"]
 
     upload_pdfs_to_sharepoint_folder_name = config.get("upload_pdfs_to_sharepoint_folder_name", "")
     file_url = config.get("file_url", "")

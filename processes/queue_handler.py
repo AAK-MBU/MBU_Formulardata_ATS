@@ -69,6 +69,8 @@ def retrieve_items_for_queue(sharepoint_kwargs: dict) -> list[dict]:
     formular_mapping = form_config["formular_mapping"]
     del form_config["formular_mapping"]
 
+    form_config["os2_webform_id"] = os2_webform_id
+
     upload_pdfs_to_sharepoint_folder_name = form_config.get("upload_pdfs_to_sharepoint_folder_name", "")
 
     form_config["excel_file_exists"] = False

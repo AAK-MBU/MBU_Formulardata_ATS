@@ -15,6 +15,7 @@ MAX_RETRIES = 1  # failure retries per item
 RETRY_BASE_DELAY = 0.5  # seconds
 
 WEBFORMS_CONFIG = {
+
     "basisteam_spoergeskema_til_fagpe": {
         "excel_file_name": "Dataudtræk basisteam - fagperson.xlsx",
         "folder_name": "General/Evaluering/Udtræk OS2Forms",
@@ -65,4 +66,12 @@ WEBFORMS_CONFIG = {
         "formular_mapping": formular_mappings.sundung_aarhus_mapping,
         "site_name": "tea-teamsite11121",
     },
+
+    "ansoegning_om_koersel_med_skoleb": {
+        "excel_file_name": "Dataudtræk Ansøgning om kørsel med skolebus.xlsx",
+        "folder_name": "Udtræk af OS2Forms-formularer",
+        "formular_mapping": formular_mappings.ansoegning_om_koersel_med_skoleb_mapping,
+        "site_name": "BudgetogRegnskab-Samarbejdsprojekter-Befordring",
+    },
+
 }
